@@ -15,6 +15,41 @@ function updateTime() {
     dateElement.textContent = dateStr;
 }
 
+// Toast Notification
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show';
+    if (type === 'error') {
+        toast.classList.add('error');
+    } else if (type === 'success') {
+        toast.classList.add('success');
+    }
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// Safe URL validation and navigation
+function isValidUrl(urlString) {
+    try {
+        const url = new URL(urlString);
+        // Only allow http and https protocols for security
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (e) {
+        return false;
+    }
+}
+
+function safeNavigate(url) {
+    if (isValidUrl(url)) {
+        window.location.href = url;
+    } else {
+        showToast('无效的URL地址', 'error');
+    }
+}
+
 // Search Functionality
 const searchEngines = {
     google: 'https://www.google.com/search?q=',
@@ -89,7 +124,7 @@ function addLinkToGrid(title, url, save = true) {
     `;
     
     linkItem.addEventListener('click', () => {
-        window.location.href = url;
+        safeNavigate(url);
     });
     
     linksGrid.appendChild(linkItem);
@@ -103,7 +138,7 @@ function addLinkToGrid(title, url, save = true) {
 document.querySelectorAll('.link-item[data-url]').forEach(link => {
     link.addEventListener('click', () => {
         const url = link.getAttribute('data-url');
-        window.location.href = url;
+        safeNavigate(url);
     });
 });
 
@@ -132,15 +167,15 @@ saveBtn.addEventListener('click', () => {
     
     if (title && url) {
         // Validate URL
-        try {
-            new URL(url);
+        if (isValidUrl(url)) {
             addLinkToGrid(title, url);
             modal.classList.remove('active');
-        } catch (e) {
-            alert('请输入有效的URL地址');
+            showToast('链接添加成功！', 'success');
+        } else {
+            showToast('请输入有效的URL地址', 'error');
         }
     } else {
-        alert('请填写标题和URL');
+        showToast('请填写标题和URL', 'error');
     }
 });
 
@@ -153,7 +188,7 @@ modal.addEventListener('click', (e) => {
 
 // Settings button (placeholder for future features)
 document.getElementById('settings-btn').addEventListener('click', () => {
-    alert('设置功能即将推出！');
+    showToast('设置功能即将推出！', 'info');
 });
 
 // Background customization (could be expanded)
