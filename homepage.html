@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage</title>
+    <style>
+        /* --- 系统变量 (System Tokens) --- */
+        :root {
+            --bg-wallpaper: radial-gradient(circle at 50% 30%, #ffffff 0%, #dce5e8 100%);
+            --glass-bg: rgba(255, 255, 255, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-blur: 30px;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --text-tertiary: #aeaeb2;
+            --accent-color: #007AFF;
+            --danger-color: #FF3B30;
+            --success-color: #34C759;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --shadow-sm: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-md: 0 12px 32px rgba(0,0,0,0.12);
+            --shadow-dock: 0 10px 25px rgba(0,0,0,0.15);
+            --ease-spring: cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-wallpaper: radial-gradient(circle at 50% 30%, #2c2c2e 0%, #000000 100%);
+                --glass-bg: rgba(30, 30, 30, 0.6);
+                --glass-border: rgba(255, 255, 255, 0.15);
+                --text-primary: #f5f5f7;
+                --text-secondary: #86868b;
+                --text-tertiary: #636366;
+                --shadow-sm: 0 4px 12px rgba(0,0,0,0.4);
+                --shadow-md: 0 12px 32px rgba(0,0,0,0.5);
+                --shadow-dock: 0 10px 25px rgba(0,0,0,0.5);
+            }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; outline: none; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+
+        body {
+            background: var(--bg-wallpaper);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* --- 1. 顶部 Spotlight --- */
+        .top-bar { padding-top: 8vh; width: 100%; display: flex; justify-content: center; z-index: 50; }
+        .search-card { width: 600px; height: 60px; background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); display: flex; align-items: center; padding: 0 20px; transition: transform 0.2s var(--ease-spring); }
+        .search-card:focus-within { transform: scale(1.02); }
+        .search-input { flex: 1; background: transparent; border: none; font-size: 20px; margin-left: 12px; color: var(--text-primary); font-weight: 300; }
+
+        /* --- 2. 中间 Dashboard (Grid) --- */
+        .dashboard-grid { display: grid; grid-template-columns: 280px 360px 280px; gap: 24px; align-items: start; padding: 20px; z-index: 10; }
+        .widget-col { display: flex; flex-direction: column; gap: 20px; }
+        .mac-widget { background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; transition: transform 0.3s var(--ease-spring); }
+        .mac-widget:hover { transform: translateY(-2px); }
+
+        /* Widget Styles */
+        .widget-clock { height: 150px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        .clock-day { font-size: 12px; color: var(--danger-color); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .clock-time { font-size: 46px; font-weight: 200; color: var(--text-primary); line-height: 1; letter-spacing: -1px; }
+        .clock-date { font-size: 16px; color: var(--text-secondary); }
+
+        .widget-weather { height: 150px; padding: 20px; background: linear-gradient(135deg, #6aa5e1 0%, #427bbb 100%); color: white; border: none; display: flex; flex-direction: column; justify-content: space-between; }
+        .w-header { font-size: 15px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .w-main { display: flex; justify-content: space-between; align-items: center; }
+        .w-temp { font-size: 42px; font-weight: 300; }
+        .w-icon { font-size: 36px; }
+        .w-footer { font-size: 12px; opacity: 0.9; }
+
+        .widget-todo { height: 320px; display: flex; flex-direction: column; }
+        .todo-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .th-title { font-size: 17px; font-weight: 600; color: var(--accent-color); display: flex; align-items: center; gap: 6px; }
+        .th-count { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+        .todo-body { flex: 1; overflow-y: auto; padding: 10px 0; }
+        .todo-body::-webkit-scrollbar { width: 4px; }
+        .todo-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .todo-item { display: flex; align-items: flex-start; padding: 8px 20px; gap: 12px; transition: background 0.2s; }
+        .todo-item:hover { background: rgba(127,127,127,0.08); }
+        .t-checkbox { width: 20px; height: 20px; border: 2px solid var(--text-tertiary); border-radius: 50%; margin-top: 2px; cursor: pointer; position: relative; flex-shrink: 0; transition: all 0.2s; }
+        .t-checkbox.checked { background: var(--accent-color); border-color: var(--accent-color); }
+        .t-checkbox.checked::after { content: ''; position: absolute; top: 45%; left: 50%; width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
+        .t-content { flex: 1; display: flex; flex-direction: column; }
+        .t-text { font-size: 14px; color: var(--text-primary); line-height: 1.4; transition: color 0.2s; }
+        .t-text.checked { color: var(--text-tertiary); text-decoration: line-through; }
+        .t-date { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+        .t-date.overdue { color: var(--danger-color); }
+        .t-delete { opacity: 0; color: var(--text-tertiary); font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .todo-item:hover .t-delete { opacity: 1; }
+        .t-delete:hover { color: var(--danger-color); }
+        .todo-footer { padding: 12px 20px; border-top: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.1); }
+        .input-group { display: flex; gap: 8px; margin-bottom: 8px; }
+        .t-input { flex: 1; background: none; border: none; font-size: 14px; color: var(--text-primary); }
+        .t-input::placeholder { color: var(--text-tertiary); }
+        .t-btn-add { font-size: 13px; font-weight: 600; color: var(--accent-color); cursor: pointer; }
+        .date-input { background: none; border: none; font-family: inherit; font-size: 11px; color: var(--text-secondary); cursor: pointer; }
+
+        .widget-network { height: 320px; display: flex; flex-direction: column; }
+        .net-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .net-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success-color); box-shadow: 0 0 8px var(--success-color); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .net-list { flex: 1; padding: 10px 0; display: flex; flex-direction: column; }
+        .net-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid rgba(0,0,0,0.03); }
+        .net-item:last-child { border-bottom: none; }
+        .net-info { display: flex; align-items: center; gap: 12px; }
+        .net-icon { width: 32px; height: 32px; border-radius: 8px; background: white; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .net-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+        .net-stat { display: flex; flex-direction: column; align-items: flex-end; }
+        .net-ms { font-size: 14px; font-weight: 600; color: var(--text-primary); font-feature-settings: "tnum"; }
+        .net-bar-bg { width: 50px; height: 4px; background: rgba(128,128,128,0.2); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+        .net-bar-fill { height: 100%; background: var(--success-color); width: 0%; transition: width 0.5s, background 0.5s; }
+
+        /* --- 3. 底部 Dock --- */
+        .dock-wrap { padding-bottom: 20px; z-index: 100; }
+        .dock { display: flex; align-items: flex-end; gap: 10px; padding: 12px; background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: var(--shadow-dock); }
+
+        .dock-item {
+            position: relative;
+            width: 56px; height: 56px;
+            transition: transform 0.2s var(--ease-spring), margin 0.2s;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .dock-item:hover { transform: scale(1.15) translateY(-10px); margin: 0 10px; z-index: 200; }
+
+        .app-icon { width: 100%; height: 100%; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: white; text-decoration: none; box-shadow: 0 4px 8px rgba(0,0,0,0.15); background: #333; position: relative; overflow: hidden; }
+        .app-icon::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%); pointer-events: none; }
+        
+        .dock-separator { width: 1px; height: 40px; background: rgba(0,0,0,0.2); margin: 0 4px; align-self: center; }
+        @media (prefers-color-scheme: dark) { .dock-separator { background: rgba(255,255,255,0.2); } }
+
+        .folder-svg { width: 100%; height: 100%; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2)); }
+
+        /* --- 修复版：文件夹气泡 (Stable Stacks Popup) --- */
+        .dock-popup {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            width: 220px;
+            background: rgba(245, 245, 245, 0.8);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.25);
+            
+            opacity: 0; 
+            visibility: hidden; 
+            pointer-events: none;
+            
+            /* 关键修复：增加 visibility 的延迟，使得鼠标移开时不会瞬间消失 */
+            /* zyning 修改*/
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s 0.96s;
+            transform-origin: bottom center;
+            
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            justify-items: center;
+        }
+
+        /* 隐形桥梁：填补图标和气泡之间的空隙 */
+        .dock-popup::before {
+            content: '';
+            position: absolute;
+            bottom: -30px; /* 向下延伸覆盖 Dock 图标上方的空隙 */
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: transparent;
+            z-index: -1;
+        }
+
+        /* 小箭头 */
+        .dock-popup::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; margin-left: -8px;
+            border-width: 8px 8px 0; border-style: solid;
+            border-color: rgba(245, 245, 245, 0.8) transparent transparent transparent;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .dock-popup { background: rgba(40, 40, 40, 0.8); border: 1px solid rgba(255,255,255,0.1); }
+            .dock-popup::after { border-color: rgba(40, 40, 40, 0.8) transparent transparent transparent; }
+        }
+
+        /* 悬停状态：立即显示 (无延迟) */
+        .dock-item:hover .dock-popup {
+            opacity: 1; visibility: visible; pointer-events: auto;
+            transform: translateX(-50%) scale(1);
+            /* 覆盖默认 transition，移除 visibility 的延迟 */
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s 0s;
+        }
+
+        .stack-link { display: flex; flex-direction: column; align-items: center; text-decoration: none; gap: 6px; transition: transform 0.2s; }
+        .stack-link:hover { transform: scale(1.15); }
+        .stack-icon { width: 44px; height: 44px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .stack-name { font-size: 10px; color: var(--text-primary); text-align: center; }
+
+        .bg-finder { background: linear-gradient(180deg, #1c92f5 0%, #0b62cf 100%); }
+        .bg-pku { background: #c60c30; }
+        .bg-chrome { background: white; color: transparent; }
+        .bg-github { background: #24292e; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Spotlight -->
+    <div class="top-bar">
+        <form class="search-card" action="https://www.bing.com/search" method="GET">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5">
+                <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" name="q" class="search-input" placeholder="Hi Zhiyuan" autocomplete="off" autofocus>
+        </form>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div class="dashboard-grid">
+        <!-- Left: Clock & Weather -->
+        <div class="widget-col">
+            <div class="mac-widget widget-clock">
+                <div class="clock-day" id="clock-day">MONDAY</div>
+                <div>
+                    <div class="clock-time" id="clock-time">00:00</div>
+                    <div class="clock-date" id="clock-date">Jan 1</div>
+                </div>
+            </div>
+            <div class="mac-widget widget-weather">
+                <div class="w-header">Taipei</div>
+                <div class="w-main">
+                    <div class="w-temp">24°</div>
+                    <div class="w-icon">🌥</div>
+                </div>
+                <div class="w-footer">H:26° L:20°</div>
+            </div>
+        </div>
+        <!-- Center: Reminders -->
+        <div class="mac-widget widget-todo">
+            <div class="todo-header">
+                <div class="th-title">
+                    <span style="color:var(--accent-color); font-size:18px">●</span> Reminders
+                </div>
+                <div class="th-count" id="todo-count">0</div>
+            </div>
+            <div class="todo-body" id="todo-list"></div>
+            <div class="todo-footer">
+                <div class="input-group">
+                    <input type="text" id="new-task" class="t-input" placeholder="New Reminder..." onkeypress="handleEnter(event)">
+                    <span class="t-btn-add" onclick="addTodo()">Add</span>
+                </div>
+                <input type="date" id="new-date" class="date-input">
+            </div>
+        </div>
+        <!-- Right: Network -->
+        <div class="mac-widget widget-network">
+            <div class="net-header">
+                <div class="net-title">Network Latency</div>
+                <div class="status-dot"></div>
+            </div>
+            <div class="net-list">
+                <div class="net-item" id="ping-yt">
+                    <div class="net-info"><div class="net-icon" style="color:#f00;">▶</div><span class="net-name">YouTube</span></div>
+                    <div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div>
+                </div>
+                <div class="net-item" id="ping-sch">
+                    <div class="net-info"><div class="net-icon" style="color:#4285f4;">🎓</div><span class="net-name">Scholar</span></div>
+                    <div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div>
+                </div>
+                <div class="net-item" id="ping-gem">
+                    <div class="net-info"><div class="net-icon" style="color:#9D65D6;">✦</div><span class="net-name">Gemini</span></div>
+                    <div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div>
+                </div>
+                <div class="net-item" id="ping-bili">
+                    <div class="net-info"><div class="net-icon" style="color:#00aeec;">📺</div><span class="net-name">Bilibili</span></div>
+                    <div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dock -->
+    <div class="dock-wrap">
+        <div class="dock">
+            <div class="dock-item"><a href="https://gemini.com" class="app-icon" style="background: #ffffff; color:white;"><svg t="1763802132253" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="9382" width="70%" height="70%"><path d="M1024 513.024c-274.944 16.896-494.08 236.032-510.976 510.976h-2.048A545.3312 545.3312 0 0 0 0 513.024v-2.048A545.3312 545.3312 0 0 0 510.976 0h2.048c16.896 274.944 236.032 494.08 510.976 510.976v2.048z" fill="#459FFF" p-id="9383"></path></svg></a></div>
+            <div class="dock-item"><a href="https://pku.edu.cn" class="app-icon" style="background: #c60c30;"><svg t="1763801179509" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6166" width="70%" height="70%"><path d="M425.813333 15.36c-26.453333 0-48.64 21.333333-48.64 48.64v62.293333c-50.346667 11.946667-101.546667 30.72-152.746666 56.32-58.026667 29.013333-115.2 67.413333-165.546667 110.08-19.626667 17.066667-22.186667 46.08-5.12 65.706667s46.08 22.186667 65.706667 5.12c78.506667-67.413333 169.813333-116.906667 257.706666-140.8v107.52C316.586667 349.866667 256.853333 384 199.68 430.933333 136.533333 482.986667 76.8 551.253333 23.04 634.026667c-5.12 7.68-7.68 17.066667-7.68 25.6 0 15.36 7.68 29.866667 21.333333 39.253333 21.333333 13.653333 50.346667 7.68 64.853334-13.653333 48.64-74.24 101.546667-135.68 158.72-182.613334 58.026667-47.786667 122.026667-80.213333 177.493333-92.16 24.746667-5.12 36.693333-28.16 36.693333-44.373333V341.333333 63.146667c-0.853333-26.453333-22.186667-47.786667-48.64-47.786667zM557.226667 63.146667v302.08c0 16.213333 11.093333 39.253333 36.693333 44.373333 56.32 11.946667 120.32 44.373333 177.493333 92.16 56.32 46.933333 110.08 108.373333 158.72 182.613333 13.653333 21.333333 42.666667 28.16 64.853334 13.653334 13.653333-8.533333 21.333333-23.893333 21.333333-39.253334 0-8.533333-2.56-17.92-7.68-25.6-53.76-82.773333-113.493333-151.04-177.493333-203.946666-57.173333-46.933333-116.053333-80.213333-177.493334-100.693334V222.72c87.893333 23.893333 179.2 74.24 257.706667 140.8 19.626667 17.066667 48.64 14.506667 65.706667-5.12s14.506667-48.64-5.12-65.706667c-50.346667-42.666667-107.52-81.066667-165.546667-110.08-51.2-25.6-102.4-44.373333-152.746667-56.32V63.146667c0-26.453333-21.333333-48.64-48.64-48.64-26.453333 0.853333-47.786667 22.186667-47.786666 48.64zM895.146667 837.973333c-20.48-46.933333-43.52-91.306667-68.266667-129.706666-26.453333-40.96-55.466667-75.946667-86.186667-104.96-33.28-31.573333-68.266667-55.466667-104.106666-72.533334-23.893333-11.093333-48.64-18.773333-73.386667-23.04v-28.16c0-26.453333-21.333333-48.64-48.64-48.64-26.453333 0-48.64 21.333333-48.64 48.64v28.16c-24.746667 4.266667-49.493333 11.946667-73.386667 23.04-35.84 17.066667-70.826667 40.96-104.106666 72.533334-30.72 29.013333-59.733333 64.853333-86.186667 104.96-24.746667 38.4-48.64 81.92-68.266667 129.706666-10.24 23.893333 0.853333 51.2 24.746667 61.44 23.893333 10.24 51.2-0.853333 61.44-24.746666 36.693333-85.333333 82.773333-156.16 133.12-203.946667 36.693333-34.986667 74.24-57.173333 112.64-67.413333v75.946666c0 26.453333-19.626667 36.693333-28.16 41.813334-2.56 1.706667-9.386667 5.12-11.946667 6.826666-17.92 11.946667-38.4 29.866667-58.026666 54.613334-34.986667 44.373333-61.44 104.96-75.946667 170.666666-5.12 25.6 10.24 50.346667 35.84 55.466667 25.6 5.12 50.346667-10.24 55.466667-35.84 11.093333-52.053333 32.426667-99.84 58.88-133.12 13.653333-17.066667 40.96-46.08 72.533333-46.08s58.88 29.013333 72.533333 46.08c26.453333 34.133333 46.933333 81.066667 58.88 133.12 5.12 25.6 30.72 40.96 55.466667 35.84 25.6-5.12 40.96-30.72 35.84-55.466667-14.506667-65.706667-40.96-126.293333-75.946667-170.666666-19.626667-24.746667-40.106667-42.666667-58.026666-54.613334-2.56-1.706667-9.386667-5.12-11.946667-6.826666-8.533333-5.12-28.16-15.36-28.16-41.813334v-75.946666c38.4 10.24 76.8 32.426667 112.64 67.413333 50.346667 47.786667 96.426667 118.613333 133.12 203.946667 10.24 23.893333 37.546667 34.986667 61.44 24.746666 23.893333-10.24 34.986667-37.546667 24.746667-61.44z" fill="#ffffff" p-id="6167" data-spm-anchor-id="a313x.search_index.0.i10.23e83a81rGbOod" class="selected"></path></svg></a></div>
+            <div class="dock-item"><a href="https://scholar.google.com" class="app-icon bg-chrome"><svg t="1763802345491" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="10393" width="70%" height="70%"><path d="M512 822.24L0 405.334 512 0z" fill="#4285F4" p-id="10394"></path><path d="M512 822.24l512-416.906L512 0z" fill="#356AC3" p-id="10395"></path><path d="M512 725.334m-298.666 0a298.666 298.666 0 1 0 597.332 0 298.666 298.666 0 1 0-597.332 0Z" fill="#A0C3FF" p-id="10396"></path><path d="M242.074 597.334c47.936-100.906 150.784-170.668 269.926-170.668s221.99 69.762 269.926 170.668H242.074z" fill="#76A7FA" p-id="10397"></path></svg></a></div>
+            <div class="dock-item"><a href="https://github.com" class="app-icon bg-github"><svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.05-.015-2.055-3.33.72-4.035-1.605-4.035-1.605-.54-1.38-1.335-1.755-1.335-1.755-1.087-.75.075-.735.075-.735 1.2.09 1.83 1.245 1.83 1.245 1.065 1.83 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.475-1.335-5.475-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.285 0 .315.225.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z"/></svg></a></div>
+            <div class="dock-item"><a href="https://bilibili.com" class="app-icon" style="background-color: #ffffff;"><svg t="1763801540092" class="icon" viewBox="0 0 1131 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2995" width="80%" height="80%"><path d="M235.636303 7.644088a80.647695 80.647695 0 0 1 68.540281 0 167.708216 167.708216 0 0 1 41.914228 30.781563l161.244088 141.082165h115.276954l161.244088-141.082165a169.298597 169.298597 0 0 1 41.914229-30.781563 80.647695 80.647695 0 0 1 107.222445 66.693387 80.647695 80.647695 0 0 1-17.750702 54.021643 450.693387 450.693387 0 0 1-35.501403 32.269339 233.016433 233.016433 0 0 1-22.573146 18.52024h100.809619a170.940281 170.940281 0 0 1 118.509018 53.200802 171.761122 171.761122 0 0 1 54.021644 118.509018v463.621643a326.541082 326.541082 0 0 1-4.052906 70.130662 178.99479 178.99479 0 0 1-80.647696 112.865731 173.351503 173.351503 0 0 1-92.703807 25.651303H213.063157a341.880561 341.880561 0 0 1-72.541884-4.052906 178.173948 178.173948 0 0 1-111.326653-80.185972 172.530661 172.530661 0 0 1-27.652105-92.703808V387.385972a361.221643 361.221643 0 0 1 0-66.693387 177.404409 177.404409 0 0 1 161.244089-143.647294h105.888577c-16.92986-12.107415-31.448497-26.626052-46.787976-39.503006a81.571142 81.571142 0 0 1 13.697795-129.795592m-18.571543 312.740682a80.647695 80.647695 0 0 0-63.61523 58.023246 108.864128 108.864128 0 0 0 0 30.781563v381.383568a80.647695 80.647695 0 0 0 55.612024 80.647695 106.452906 106.452906 0 0 0 34.680561 5.643286h655.647295a80.647695 80.647695 0 0 0 76.440881-47.916633 112.865731 112.865731 0 0 0 8.054509-53.200801V421.245691a135.438878 135.438878 0 0 0 0-38.682164 80.647695 80.647695 0 0 0-52.431262-54.842485 129.795591 129.795591 0 0 0-49.968738-7.233667H254.977385a269.287375 269.287375 0 0 0-37.912625 0z" fill="#20B0E3" p-id="2996"></path><path d="M349.322876 446.23006a79.36513 79.36513 0 0 1 83.87976 78.18517v80.647696a79.672946 79.672946 0 0 1-148.367135 41.914228 104.811222 104.811222 0 0 1-10.260521-54.842485V511.538277a80.647695 80.647695 0 0 1 70.130662-67.719439z m416.833667 0a80.647695 80.647695 0 0 1 86.188377 74.645291v81.776352a94.345491 94.345491 0 0 1-12.107415 53.200802 80.647695 80.647695 0 0 1-133.027655 0 95.935872 95.935872 0 0 1-12.876954-57.253707v-80.596393a80.647695 80.647695 0 0 1 70.130662-70.951503z" fill="#20B0E3" p-id="2997"></path></svg></a></div>
+            <div class="dock-item"><a href="https://notion.so" class="app-icon" style="background-color: #ffffff;"><svg t="1763802953171" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="11380" width="70%" height="70%"><path d="M647.165837 2.332635L78.85493 44.179432C33.04873 48.138835 17.074585 78.005024 17.074585 113.810318v621.148461c0 27.886487 9.966774 51.745305 33.893858 83.625329l133.595729 173.189762c21.947382 27.886487 41.88093 33.859725 83.795993 31.880024l659.957441-39.832963c55.807107-3.959403 71.781251-29.866189 71.781251-73.658555V211.361824c0-22.630038-8.976923-29.1494-35.3957-48.468558a1594.683818 1594.683818 0 0 1-4.505528-3.276748L778.781865 32.198823C734.8871 0.387066 716.967387-3.640603 647.165837 2.332635zM283.310326 199.92734c-53.895671 3.618075-66.115209 4.437262-96.732319-20.377274l-77.822755-61.712079c-7.918807-7.987072-3.925271-17.953846 15.974144-19.933548l546.363525-39.79883c45.840333-3.993536 69.767417 11.946476 87.721263 25.872653l93.728634 67.71945c3.993536 1.979702 13.926177 13.892044 1.979702 13.892044l-564.249106 33.859725-6.963088 0.477859zM220.471864 904.189138V310.961297c0-25.906785 7.952939-37.853261 31.880024-39.867096l648.010965-37.819128c21.981515-1.979702 31.948289 11.946476 31.948289 37.819128v589.268439c0 25.906785-3.993536 47.820035-39.935361 49.799736l-620.090346 35.839427c-35.873559 1.979702-51.813571-9.932641-51.813571-41.812665z m612.171539-561.416084c3.959403 17.919713 0 35.839427-17.987979 37.887394l-29.900321 5.904972v437.991926c-25.940918 13.926177-49.833869 21.879117-69.767417 21.879116-31.914156 0-39.935361-9.966774-63.828313-39.79883l-195.444339-306.580694v296.613921l61.84861 13.96031s0 35.839427-49.902135 35.839426l-137.555132 7.95294c-3.959403-7.987072 0-27.886487 13.994443-31.845891l35.839426-9.932641v-392.185725l-49.833869-4.027669c-3.959403-17.919713 5.973238-43.792366 33.92799-45.772068l147.55604-9.966773 203.397279 310.608363v-274.768937l-51.881837-5.939105c-3.959403-21.947382 11.946476-37.853261 31.914156-39.832962l137.623398-7.987073z" fill="#000000" p-id="11381"></path></svg></a></div>
+            <div class="dock-separator"></div>
+            <!-- Stack 1: Media -->
+            <div class="dock-item">
+                <svg class="folder-svg" viewBox="0 0 100 100"><defs><linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#5AC8FA;stop-opacity:1" /><stop offset="100%" style="stop-color:#007AFF;stop-opacity:1" /></linearGradient></defs><path d="M10,20 L40,20 L45,28 L90,28 C94,28 96,30 96,34 L96,80 C96,85 92,88 88,88 L12,88 C8,88 4,85 4,80 L4,26 C4,22 6,20 10,20 Z" fill="url(#grad1)" /><text x="50" y="64" font-size="28" text-anchor="middle" fill="rgba(255,255,255,0.8)">🍿</text></svg>
+                <div class="dock-popup">
+                    <a href="https://youtube.com" class="stack-link"><div class="stack-icon" style="background:#f00; color:white;">▶</div><span class="stack-name">YouTube</span></a>
+                    <a href="https://netflix.com" class="stack-link"><div class="stack-icon" style="background:#000; color:#E50914;">N</div><span class="stack-name">Netflix</span></a>
+                    <a href="https://bilibili.com" class="stack-link"><div class="stack-icon" style="background:#00aeec; color:white;">📺</div><span class="stack-name">Bilibili</span></a>
+                </div>
+            </div>
+            <!-- Stack 2: Tools -->
+            <div class="dock-item">
+                <svg class="folder-svg" viewBox="0 0 100 100"><defs><linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FF9500;stop-opacity:1" /><stop offset="100%" style="stop-color:#FF2D55;stop-opacity:1" /></linearGradient></defs><path d="M10,20 L40,20 L45,28 L90,28 C94,28 96,30 96,34 L96,80 C96,85 92,88 88,88 L12,88 C8,88 4,85 4,80 L4,26 C4,22 6,20 10,20 Z" fill="url(#grad2)" /><text x="50" y="64" font-size="28" text-anchor="middle" fill="rgba(255,255,255,0.8)">🛠️</text></svg>
+                <div class="dock-popup">
+                    <a href="https://chat.openai.com" class="stack-link"><div class="stack-icon" style="background:#000; color:white;">AI</div><span class="stack-name">ChatGPT</span></a>
+                    <a href="https://gemini.google.com" class="stack-link"><div class="stack-icon" style="background:linear-gradient(135deg, #4E75EE, #9D65D6); color:white;">✦</div><span class="stack-name">Gemini</span></a>
+                    <a href="https://scholar.google.com" class="stack-link"><div class="stack-icon" style="background:#4285f4; color:white;">🎓</div><span class="stack-name">Scholar</span></a>
+                    <a href="https://mail.pku.edu.cn" class="stack-link"><div class="stack-icon" style="background:#f00; color:white;">M</div><span class="stack-name">Mail</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* Clock */
+        function updateClock() {
+            const now = new Date();
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            document.getElementById('clock-day').innerText = days[now.getDay()];
+            document.getElementById('clock-time').innerText = `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
+            document.getElementById('clock-date').innerText = `${months[now.getMonth()]} ${now.getDate()}`;
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        /* Reminders */
+        let todos = JSON.parse(localStorage.getItem('macTodos')) || [];
+        function saveTodos() { localStorage.setItem('macTodos', JSON.stringify(todos)); renderTodos(); }
+        function addTodo() {
+            const input = document.getElementById('new-task'), dateInput = document.getElementById('new-date'), text = input.value.trim();
+            if (!text) return;
+            todos.push({ id: Date.now(), text: text, date: dateInput.value, completed: false });
+            input.value = ''; dateInput.value = ''; saveTodos();
+        }
+        function handleEnter(e) { if (e.key === 'Enter') addTodo(); }
+        function toggleTodo(id) { const idx = todos.findIndex(t => t.id === id); if (idx !== -1) { todos[idx].completed = !todos[idx].completed; saveTodos(); } }
+        function deleteTodo(id) { todos = todos.filter(t => t.id !== id); saveTodos(); }
+        function renderTodos() {
+            const list = document.getElementById('todo-list'), countEl = document.getElementById('todo-count');
+            list.innerHTML = '';
+            const sortedTodos = [...todos].sort((a, b) => a.completed - b.completed);
+            sortedTodos.forEach(todo => {
+                const div = document.createElement('div'); div.className = 'todo-item';
+                let dateHtml = '';
+                if (todo.date) {
+                    const d = new Date(todo.date), today = new Date(); today.setHours(0,0,0,0);
+                    const isOverdue = d < today && !todo.completed;
+                    dateHtml = `<div class="t-date ${isOverdue ? 'overdue' : ''}">${d.toLocaleDateString()}</div>`;
+                }
+                div.innerHTML = `<div class="t-checkbox ${todo.completed ? 'checked' : ''}" onclick="toggleTodo(${todo.id})"></div><div class="t-content"><div class="t-text ${todo.completed ? 'checked' : ''}">${todo.text}</div>${dateHtml}</div><div class="t-delete" onclick="deleteTodo(${todo.id})">✕</div>`;
+                list.appendChild(div);
+            });
+            countEl.innerText = todos.filter(t => !t.completed).length;
+        }
+        renderTodos();
+
+        /* Network Latency */
+        const sites = [ { id: 'ping-yt', url: 'https://www.youtube.com/favicon.ico' }, { id: 'ping-sch', url: 'https://scholar.google.com/favicon.ico' }, { id: 'ping-gem', url: 'https://gemini.google.com/favicon.ico' }, { id: 'ping-bili', url: 'https://www.bilibili.com/favicon.ico' } ];
+        async function checkLatency(url) { const start = Date.now(); try { await fetch(url, { mode: 'no-cors', cache: 'no-store' }); return Date.now() - start; } catch (e) { return -1; } }
+        async function updateNetworkStatus() {
+            for (let site of sites) {
+                const ms = await checkLatency(site.url);
+                const el = document.getElementById(site.id), msEl = el.querySelector('.net-ms'), barEl = el.querySelector('.net-bar-fill');
+                if (ms === -1) { msEl.innerText = "Err"; msEl.style.color = "var(--danger-color)"; barEl.style.width = "100%"; barEl.style.background = "var(--danger-color)"; }
+                else { msEl.innerText = ms + " ms"; let color = "var(--success-color)", width = "30%"; if (ms < 100) { color = "#34C759"; width = "30%"; msEl.style.color = "var(--text-primary)"; } else if (ms < 400) { color = "#FF9500"; width = "60%"; msEl.style.color = "var(--text-primary)"; } else { color = "#FF3B30"; width = "90%"; msEl.style.color = "#FF3B30"; } barEl.style.background = color; barEl.style.width = width; }
+            }
+        }
+        setTimeout(updateNetworkStatus, 1000); setInterval(updateNetworkStatus, 5000);
+        document.querySelector('.search-input').focus();
+    </script>
+</body>
+</html>
