@@ -22,7 +22,7 @@
                 url: 'https://gemini.google.com/app', 
                 param: '', 
                 placeholder: 'Ask Gemini...',
-                icon: '<span style="font-size:20px; background: linear-gradient(135deg, #4E75EE, #9D65D6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">✦</span>'
+                icon: '<span style="font-size:20px; background: linear-gradient(135deg, #4E75EE, #9D65D6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">�?/span>'
             },
             Copilot:{
                 url: 'https://www.bing.com/copilotsearch',
@@ -122,6 +122,72 @@
         const commandHistory = [];
         let historyIndex = -1;
         const promptText = cmdPrompt ? cmdPrompt.textContent : '>';
+        const TERMINAL_COMMANDS = ['help', 'clear', 'cal', 'weather', 'ping', 'open', 'search', 'theme', 'time'];
+        const OPEN_TARGET_ALIASES = {
+            yt: 'https://www.youtube.com',
+            youtube: 'https://www.youtube.com',
+            gh: 'https://github.com',
+            github: 'https://github.com',
+            bili: 'https://www.bilibili.com',
+            bilibili: 'https://www.bilibili.com',
+            notion: 'https://www.notion.so',
+            gemini: 'https://gemini.google.com',
+            pku: 'https://www.pku.edu.cn'
+        };
+        const completionState = { base: '', items: [], index: -1 };
+        const THEME_STORAGE_KEY = 'homepage_theme';
+        const THEME_PRESETS = {
+            stars: {
+                vars: {
+                    '--bg-wallpaper': 'radial-gradient(circle at 18% 20%, rgba(64, 102, 186, 0.34) 0%, rgba(64, 102, 186, 0) 32%), radial-gradient(circle at 78% 18%, rgba(126, 84, 173, 0.28) 0%, rgba(126, 84, 173, 0) 34%), radial-gradient(circle at 50% 100%, #0a1326 0%, #050911 56%, #03050a 100%)',
+                    '--glass-bg': 'rgba(26, 32, 52, 0.58)',
+                    '--glass-border': 'rgba(170, 196, 255, 0.28)',
+                    '--bg-engine-dropdown': 'rgba(20, 26, 40, 0.95)',
+                    '--text-primary': '#e8f0ff',
+                    '--text-secondary': '#9fb2d8',
+                    '--text-tertiary': '#6f7f9f'
+                }
+            },
+            aurora: {
+                vars: {
+                    '--bg-wallpaper': 'radial-gradient(circle at 22% 18%, rgba(76, 183, 207, 0.36) 0%, rgba(76, 183, 207, 0) 36%), radial-gradient(circle at 74% 22%, rgba(120, 208, 151, 0.3) 0%, rgba(120, 208, 151, 0) 38%), radial-gradient(circle at 50% 100%, #051a1d 0%, #031014 58%, #02080a 100%)',
+                    '--glass-bg': 'rgba(19, 40, 44, 0.58)',
+                    '--glass-border': 'rgba(150, 223, 206, 0.3)',
+                    '--bg-engine-dropdown': 'rgba(15, 33, 38, 0.95)',
+                    '--text-primary': '#daf7f0',
+                    '--text-secondary': '#90c8bc',
+                    '--text-tertiary': '#618d87'
+                }
+            },
+            ember: {
+                vars: {
+                    '--bg-wallpaper': 'radial-gradient(circle at 18% 18%, rgba(207, 103, 76, 0.35) 0%, rgba(207, 103, 76, 0) 34%), radial-gradient(circle at 80% 22%, rgba(224, 160, 92, 0.3) 0%, rgba(224, 160, 92, 0) 38%), radial-gradient(circle at 50% 100%, #23110a 0%, #140904 58%, #0a0402 100%)',
+                    '--glass-bg': 'rgba(53, 28, 18, 0.58)',
+                    '--glass-border': 'rgba(236, 176, 125, 0.3)',
+                    '--bg-engine-dropdown': 'rgba(40, 20, 12, 0.95)',
+                    '--text-primary': '#ffecd8',
+                    '--text-secondary': '#ddb894',
+                    '--text-tertiary': '#9d7a59'
+                }
+            }
+        };
+        let activeTheme = 'stars';
+
+        const TIMEZONE_ALIASES = {
+            local: 'local',
+            beijing: 'Asia/Shanghai',
+            shanghai: 'Asia/Shanghai',
+            tokyo: 'Asia/Tokyo',
+            seoul: 'Asia/Seoul',
+            singapore: 'Asia/Singapore',
+            london: 'Europe/London',
+            paris: 'Europe/Paris',
+            ny: 'America/New_York',
+            newyork: 'America/New_York',
+            la: 'America/Los_Angeles',
+            losangeles: 'America/Los_Angeles',
+            utc: 'UTC'
+        };
 
         function appendTerminalLine(type, text) {
             if (!terminalOutput) return;
@@ -331,19 +397,353 @@
             return stack[0];
         }
 
-        function showHelp() {
-            appendTerminalLine('help', 'Available commands:');
-            appendTerminalLine('help', '  help                 Show command help');
-            appendTerminalLine('help', '  clear                Clear output');
-            appendTerminalLine('help', '  cal <expr>           Calculate expression');
-            appendTerminalLine('help', 'Examples:');
-            appendTerminalLine('help', '  cal 2^3');
-            appendTerminalLine('help', '  cal 2^-2');
-            appendTerminalLine('help', '  cal log2(8)');
-            appendTerminalLine('help', '  cal (2+3)*4');
+        function weatherCodeToText(code) {
+            if (code === 0) return 'Clear';
+            if (code >= 1 && code <= 3) return 'Cloudy';
+            if (code >= 45 && code <= 48) return 'Fog';
+            if (code >= 51 && code <= 67) return 'Drizzle/Rain';
+            if (code >= 71 && code <= 77) return 'Snow';
+            if (code >= 80 && code <= 82) return 'Rain showers';
+            if (code >= 95 && code <= 99) return 'Thunderstorm';
+            return `Code ${code}`;
         }
 
-        function executeCommand(rawCommand) {
+        async function fetchBeijingWeather() {
+            const lat = 39.9042;
+            const lon = 116.4074;
+            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FShanghai`;
+            const res = await fetch(apiUrl, { cache: 'no-store' });
+            if (!res.ok) {
+                throw new Error(`weather request failed (${res.status})`);
+            }
+            const data = await res.json();
+            const currentTemp = Math.round(data.current.temperature_2m);
+            const weatherText = weatherCodeToText(data.current.weather_code);
+            const maxTemp = Math.round(data.daily.temperature_2m_max[0]);
+            const minTemp = Math.round(data.daily.temperature_2m_min[0]);
+            return `Beijing: ${currentTemp}°C, ${weatherText}, H:${maxTemp}°C L:${minTemp}°C`;
+        }
+
+        function normalizePingTarget(raw) {
+            const input = raw.trim();
+            if (!input) throw new Error('ping command requires a url');
+
+            let withProtocol = input;
+            if (!/^https?:\/\//i.test(withProtocol)) {
+                withProtocol = `https://${withProtocol}`;
+            }
+
+            let parsed;
+            try {
+                parsed = new URL(withProtocol);
+            } catch (_e) {
+                throw new Error('invalid url');
+            }
+
+            if (!parsed.hostname) throw new Error('invalid url');
+            return parsed.toString();
+        }
+
+        async function pingUrl(rawUrl) {
+            const target = normalizePingTarget(rawUrl);
+            const start = performance.now();
+            try {
+                await fetch(target, { mode: 'no-cors', cache: 'no-store' });
+            } catch (_e) {
+                throw new Error('request failed (possibly blocked by browser/CORS)');
+            }
+            const elapsed = Math.round(performance.now() - start);
+            return `${target} -> ${elapsed} ms`;
+        }
+
+        function getEngineKeyByName(rawEngine) {
+            const normalized = (rawEngine || '').trim().toLowerCase();
+            if (!normalized) return '';
+            const matched = Object.keys(engines).find((key) => key.toLowerCase() === normalized);
+            return matched || '';
+        }
+
+        function normalizeOpenTarget(rawTarget) {
+            const input = (rawTarget || '').trim();
+            if (!input) throw new Error('open command requires a target');
+
+            if (OPEN_TARGET_ALIASES[input.toLowerCase()]) {
+                return OPEN_TARGET_ALIASES[input.toLowerCase()];
+            }
+
+            const engineKey = getEngineKeyByName(input);
+            if (engineKey) {
+                return engines[engineKey].url;
+            }
+
+            let target = input;
+            if (!/^https?:\/\//i.test(target)) {
+                target = `https://${target}`;
+            }
+
+            try {
+                const parsed = new URL(target);
+                if (!parsed.hostname) throw new Error('invalid url');
+                return parsed.toString();
+            } catch (_e) {
+                throw new Error('invalid open target');
+            }
+        }
+
+        async function runSearchCommand(args) {
+            const firstSpace = args.indexOf(' ');
+            if (firstSpace === -1) {
+                throw new Error('search command usage: search <engine> <query>');
+            }
+
+            const rawEngine = args.slice(0, firstSpace).trim();
+            const query = args.slice(firstSpace + 1).trim();
+            if (!query) throw new Error('search query cannot be empty');
+
+            const engineKey = getEngineKeyByName(rawEngine);
+            if (!engineKey) throw new Error(`unknown engine "${rawEngine}"`);
+
+            const engine = engines[engineKey];
+            if (engineKey.toLowerCase() === 'gemini') {
+                try {
+                    await navigator.clipboard.writeText(query);
+                    appendTerminalLine('help', 'Query copied to clipboard. Paste in Gemini.');
+                } catch (_e) {
+                    appendTerminalLine('help', 'Could not access clipboard. Opening Gemini directly.');
+                }
+                window.open(engine.url, '_blank');
+                appendTerminalLine('result', `Opened ${engineKey} for: ${query}`);
+                return;
+            }
+
+            const searchUrl = new URL(engine.url);
+            if (!engine.param) throw new Error(`${engineKey} does not support query search`);
+            searchUrl.searchParams.set(engine.param, query);
+            window.open(searchUrl.toString(), '_blank');
+            appendTerminalLine('result', `Opened ${engineKey} search for: ${query}`);
+        }
+                function applyTheme(themeName, save = true) {
+            const key = (themeName || '').trim().toLowerCase();
+            const preset = THEME_PRESETS[key];
+            if (!preset) {
+                throw new Error(`unknown theme "${themeName}"`);
+            }
+
+            Object.entries(preset.vars).forEach(([varName, value]) => {
+                document.documentElement.style.setProperty(varName, value);
+            });
+
+            activeTheme = key;
+            if (save) {
+                localStorage.setItem(THEME_STORAGE_KEY, key);
+            }
+            return key;
+        }
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+            if (!savedTheme) return;
+            if (!THEME_PRESETS[savedTheme]) return;
+            applyTheme(savedTheme, false);
+        }
+
+        function runThemeCommand(args) {
+            const input = (args || '').trim().toLowerCase();
+            const names = Object.keys(THEME_PRESETS);
+
+            if (!input || input === 'list') {
+                appendTerminalLine('help', `Themes: ${names.join(', ')}`);
+                appendTerminalLine('help', `Current theme: ${activeTheme}`);
+                return;
+            }
+
+            if (input === 'reset') {
+                const applied = applyTheme('stars');
+                appendTerminalLine('result', `Theme switched to ${applied}`);
+                return;
+            }
+
+            const applied = applyTheme(input);
+            appendTerminalLine('result', `Theme switched to ${applied}`);
+        }
+
+        function formatTimeForZone(zone) {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: zone,
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            return formatter.format(new Date());
+        }
+
+        function resolveTimeZone(input) {
+            const normalized = (input || '').trim().toLowerCase();
+            if (!normalized || normalized === 'local') {
+                const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+                return { label: 'local', zone: localZone };
+            }
+
+            if (normalized === 'list' || normalized === 'zones') {
+                return { listOnly: true };
+            }
+
+            if (TIMEZONE_ALIASES[normalized] && TIMEZONE_ALIASES[normalized] !== 'local') {
+                return { label: normalized, zone: TIMEZONE_ALIASES[normalized] };
+            }
+
+            return { label: input.trim(), zone: input.trim() };
+        }
+
+        function runTimeCommand(args) {
+            const resolved = resolveTimeZone(args);
+            if (resolved.listOnly) {
+                appendTerminalLine('help', `Time aliases: ${Object.keys(TIMEZONE_ALIASES).join(', ')}`);
+                return;
+            }
+
+            try {
+                const output = formatTimeForZone(resolved.zone);
+                appendTerminalLine('result', `${resolved.label} (${resolved.zone}): ${output}`);
+            } catch (_e) {
+                throw new Error('invalid timezone. Use "time list" to view aliases');
+            }
+        }
+
+        function resetCompletionState() {
+            completionState.base = '';
+            completionState.items = [];
+            completionState.index = -1;
+        }
+
+        function setTerminalInputValue(value) {
+            terminalInput.value = value;
+            terminalInput.setSelectionRange(value.length, value.length);
+        }
+
+                        function getAutocompleteCandidates(inputText) {
+            const rawInput = inputText || '';
+            const hasTrailingSpace = /\s$/.test(rawInput);
+            const parts = rawInput.trim().split(/\s+/).filter(Boolean);
+
+            if (!parts.length) {
+                return TERMINAL_COMMANDS.slice();
+            }
+
+            if (parts.length === 1 && !hasTrailingSpace) {
+                const prefix = parts[0].toLowerCase();
+                return TERMINAL_COMMANDS.filter((cmd) => cmd.startsWith(prefix));
+            }
+
+            const command = parts[0].toLowerCase();
+
+            if (command === 'open') {
+                if (parts.length > 2 || (parts.length === 2 && hasTrailingSpace)) {
+                    return [];
+                }
+
+                const token = hasTrailingSpace ? '' : parts[1] || '';
+                const candidates = [...Object.keys(OPEN_TARGET_ALIASES), ...Object.keys(engines)];
+                const uniqueCandidates = [...new Set(candidates)];
+                return uniqueCandidates
+                    .filter((item) => item.toLowerCase().startsWith(token.toLowerCase()))
+                    .map((item) => `open ${item}`);
+            }
+
+            if (command === 'search') {
+                if (parts.length === 1) {
+                    return Object.keys(engines).map((engineKey) => `search ${engineKey}`);
+                }
+
+                if (parts.length === 2 && !hasTrailingSpace) {
+                    const token = parts[1] || '';
+                    return Object.keys(engines)
+                        .filter((engineKey) => engineKey.toLowerCase().startsWith(token.toLowerCase()))
+                        .map((engineKey) => `search ${engineKey}`);
+                }
+                return [];
+            }
+
+            if (command === 'theme') {
+                const candidates = [...Object.keys(THEME_PRESETS), 'list', 'reset'];
+                if (parts.length === 1 && hasTrailingSpace) {
+                    return candidates.map((item) => `theme ${item}`);
+                }
+                if (parts.length === 2 && !hasTrailingSpace) {
+                    const token = parts[1] || '';
+                    return candidates
+                        .filter((item) => item.toLowerCase().startsWith(token.toLowerCase()))
+                        .map((item) => `theme ${item}`);
+                }
+                return [];
+            }
+
+            if (command === 'time') {
+                const candidates = Object.keys(TIMEZONE_ALIASES);
+                if (parts.length === 1 && hasTrailingSpace) {
+                    return candidates.map((item) => `time ${item}`);
+                }
+                if (parts.length === 2 && !hasTrailingSpace) {
+                    const token = parts[1] || '';
+                    return candidates
+                        .filter((item) => item.toLowerCase().startsWith(token.toLowerCase()))
+                        .map((item) => `time ${item}`);
+                }
+                return [];
+            }
+
+            return [];
+        }
+
+        function handleTabCompletion(reverse = false) {
+            const current = terminalInput.value;
+
+            if (!completionState.items.length || completionState.items[completionState.index] !== current) {
+                const candidates = getAutocompleteCandidates(current);
+                if (!candidates.length) return;
+
+                completionState.base = current;
+                completionState.items = candidates;
+                completionState.index = reverse ? candidates.length - 1 : 0;
+                setTerminalInputValue(completionState.items[completionState.index]);
+                return;
+            }
+
+            const delta = reverse ? -1 : 1;
+            const total = completionState.items.length;
+            completionState.index = (completionState.index + delta + total) % total;
+            setTerminalInputValue(completionState.items[completionState.index]);
+        }
+        function showHelp() {
+            appendTerminalLine('help', 'Commands');
+            appendTerminalLine('help', '  Core');
+            appendTerminalLine('help', '    help                Show this help');
+            appendTerminalLine('help', '    clear               Clear terminal output');
+            appendTerminalLine('help', '  Math');
+            appendTerminalLine('help', '    cal <expr>          Calculate expression');
+            appendTerminalLine('help', '  Network');
+            appendTerminalLine('help', '    weather             Query current Beijing weather');
+            appendTerminalLine('help', '    ping <url>          Measure latency');
+            appendTerminalLine('help', '  Web');
+            appendTerminalLine('help', '    open <alias|url>    Open website in new tab');
+            appendTerminalLine('help', '    search <engine> <q> Search via engine');
+            appendTerminalLine('help', '  Personalization');
+            appendTerminalLine('help', '    theme [name|list]   Switch/list themes');
+            appendTerminalLine('help', '    time [zone|alias]   Show current time');
+            appendTerminalLine('help', 'Examples');
+            appendTerminalLine('help', '  cal (2+3)*4');
+            appendTerminalLine('help', '  open yt');
+            appendTerminalLine('help', '  search google terminal commands');
+            appendTerminalLine('help', '  theme aurora');
+            appendTerminalLine('help', '  time tokyo');
+        }
+
+        async function executeCommand(rawCommand) {
             const commandLine = rawCommand.trim();
             if (!commandLine) {
                 appendTerminalLine('error', 'Error: empty command');
@@ -375,6 +775,43 @@
                     return;
                 }
 
+                if (command === 'weather') {
+                    if (args) throw new Error('weather command does not take arguments');
+                    appendTerminalLine('help', 'Querying Beijing weather...');
+                    const weather = await fetchBeijingWeather();
+                    appendTerminalLine('result', weather);
+                    return;
+                }
+
+                if (command === 'ping') {
+                    appendTerminalLine('help', 'Pinging...');
+                    const result = await pingUrl(args);
+                    appendTerminalLine('result', result);
+                    return;
+                }
+
+                if (command === 'open') {
+                    const target = normalizeOpenTarget(args);
+                    window.open(target, '_blank');
+                    appendTerminalLine('result', `Opened: ${target}`);
+                    return;
+                }
+
+                if (command === 'search') {
+                    await runSearchCommand(args);
+                    return;
+                }
+
+                if (command === 'theme') {
+                    runThemeCommand(args);
+                    return;
+                }
+
+                if (command === 'time') {
+                    runTimeCommand(args);
+                    return;
+                }
+
                 appendTerminalLine('error', `Error: unknown command "${command}"`);
             } catch (err) {
                 appendTerminalLine('error', `Error: ${err.message}`);
@@ -390,6 +827,7 @@
             commandHistory.push(value);
             historyIndex = commandHistory.length;
             terminalInput.value = '';
+            resetCompletionState();
             executeCommand(value);
         }
 
@@ -410,16 +848,54 @@
                 terminalInput.value = commandHistory[historyIndex] || '';
                 terminalInput.setSelectionRange(terminalInput.value.length, terminalInput.value.length);
             }
+            resetCompletionState();
         }
 
         terminalInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                handleTabCompletion(event.shiftKey);
+                return;
+            }
+
             if (event.key === 'Enter') {
                 event.preventDefault();
                 handleTerminalSubmit();
                 return;
             }
+
             handleHistoryNavigation(event);
         });
 
-        appendTerminalLine('help', 'Terminal ready. Type "help" for available commands.');
+        terminalInput.addEventListener('input', () => {
+            resetCompletionState();
+        });
+
+        loadSavedTheme();
+
+                function initTerminalGreeting() {
+            appendTerminalLine('help', ' /\\_/\\');
+            appendTerminalLine('help', '( o.o )');
+            appendTerminalLine('help', 'Hello, welcome back. Terminal is ready. Type "help" to see available commands.');
+            
+        }
+
+        initTerminalGreeting();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

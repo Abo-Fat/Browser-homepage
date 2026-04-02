@@ -1,6 +1,9 @@
         /* --- 系统变量 (System Tokens) --- */
         :root {
-            --bg-wallpaper: radial-gradient(circle at 50% 30%, #ffffff 0%, #dce5e8 100%);
+            --bg-wallpaper:
+                radial-gradient(circle at 18% 20%, rgba(64, 102, 186, 0.34) 0%, rgba(64, 102, 186, 0) 32%),
+                radial-gradient(circle at 78% 18%, rgba(126, 84, 173, 0.28) 0%, rgba(126, 84, 173, 0) 34%),
+                radial-gradient(circle at 50% 100%, #0a1326 0%, #050911 56%, #03050a 100%);
             --bg-engine-dropdown: rgba(255, 255, 255, 0.95);
             --glass-bg: rgba(255, 255, 255, 0.65);
             --glass-border: rgba(255, 255, 255, 0.8);
@@ -22,7 +25,10 @@
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-wallpaper: radial-gradient(circle at 50% 30%, #2c2c2e 0%, #000000 100%);
+                --bg-wallpaper:
+                    radial-gradient(circle at 16% 20%, rgba(70, 112, 198, 0.38) 0%, rgba(70, 112, 198, 0) 34%),
+                    radial-gradient(circle at 82% 16%, rgba(142, 96, 191, 0.3) 0%, rgba(142, 96, 191, 0) 34%),
+                    radial-gradient(circle at 50% 100%, #081124 0%, #04080f 60%, #02040a 100%);
                 --bg-engine-dropdown: rgba(30, 30, 30, 0.95);
                 --glass-bg: rgba(30, 30, 30, 0.7);
                 --glass-border: rgba(255, 255, 255, 0.15);
@@ -44,6 +50,34 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
+            position: relative;
+        }
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::before {
+            background-image:
+                radial-gradient(circle at 12% 24%, rgba(255, 255, 255, 0.85) 0 1px, transparent 1.8px),
+                radial-gradient(circle at 34% 68%, rgba(255, 255, 255, 0.65) 0 1px, transparent 1.8px),
+                radial-gradient(circle at 59% 37%, rgba(255, 255, 255, 0.75) 0 1px, transparent 1.8px),
+                radial-gradient(circle at 83% 52%, rgba(255, 255, 255, 0.8) 0 1px, transparent 1.8px),
+                radial-gradient(circle at 72% 80%, rgba(255, 255, 255, 0.6) 0 1px, transparent 1.8px),
+                radial-gradient(circle at 24% 84%, rgba(255, 255, 255, 0.55) 0 1px, transparent 1.8px);
+            background-repeat: repeat;
+            background-size: 380px 380px;
+            opacity: 0.42;
+        }
+        body::after {
+            background:
+                radial-gradient(circle at 25% 78%, rgba(80, 146, 255, 0.16) 0%, rgba(80, 146, 255, 0) 42%),
+                radial-gradient(circle at 86% 72%, rgba(185, 110, 245, 0.13) 0%, rgba(185, 110, 245, 0) 44%);
+            mix-blend-mode: screen;
+            opacity: 0.75;
         }
 
         /* --- 1. 顶部搜索区域 (Gemini Style) --- */
@@ -245,9 +279,11 @@
             max-height: 420px;
             display: flex;
             flex-direction: column;
-            background: #0c0c0c;
-            border-color: #2c2c2c;
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+            background: rgba(10, 16, 30, 0.86);
+            border: 1px solid rgba(136, 170, 255, 0.24);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(179, 205, 255, 0.08);
+            backdrop-filter: blur(16px) saturate(110%);
+            -webkit-backdrop-filter: blur(16px) saturate(110%);
         }
         .widget-terminal:hover { transform: none; }
         .cmd-shell {
@@ -262,11 +298,11 @@
             display: flex;
             align-items: center;
             padding: 0 12px;
-            background: #2d2d30;
-            color: #f0f0f0;
+            background: linear-gradient(180deg, rgba(40, 58, 96, 0.8) 0%, rgba(26, 39, 68, 0.82) 100%);
+            color: #dfe9ff;
             font-size: 12px;
             font-family: "Segoe UI", sans-serif;
-            border-bottom: 1px solid #1e1e1e;
+            border-bottom: 1px solid rgba(157, 186, 255, 0.2);
         }
         .terminal-output {
             flex: none;
@@ -276,16 +312,16 @@
             margin: 0;
             padding: 10px 12px;
             border: none;
-            background: #0c0c0c;
-            color: #f5f5f5;
+            background: rgba(7, 12, 22, 0.78);
+            color: #e8f0ff;
             font-family: Consolas, "Courier New", monospace;
             font-size: 13px;
             line-height: 1.45;
             overflow-y: auto;
         }
         .terminal-line { white-space: pre-wrap; word-break: break-word; margin-bottom: 4px; font-family: Consolas, "Courier New", monospace; }
-        .terminal-line.input { color: #f5f5f5; }
-        .terminal-line.result { color: #f5f5f5; }
+        .terminal-line.input { color: #e8f0ff; }
+        .terminal-line.result { color: #e8f0ff; }
         .terminal-line.error { color: #ff6b68; }
         .terminal-line.help { color: #d0d0d0; }
         .terminal-input-row {
@@ -294,20 +330,20 @@
             align-items: center;
             gap: 8px;
             padding: 8px 12px;
-            border-top: 1px solid #1e1e1e;
-            background: #0c0c0c;
+            border-top: 1px solid rgba(157, 186, 255, 0.2);
+            background: rgba(7, 12, 22, 0.78);
         }
         .prompt {
             font-family: Consolas, "Courier New", monospace;
-            color: #f5f5f5;
+            color: #e8f0ff;
             font-weight: 400;
             font-size: 14px;
         }
         .terminal-input {
             flex: 1;
             border: none;
-            background: #0c0c0c;
-            color: #f5f5f5;
+            background: transparent;
+            color: #e8f0ff;
             font-size: 14px;
             font-family: Consolas, "Courier New", monospace;
             user-select: text;
