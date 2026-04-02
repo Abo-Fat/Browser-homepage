@@ -102,37 +102,6 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        /* Reminders */
-        let todos = JSON.parse(localStorage.getItem('macTodos')) || [];
-        function saveTodos() { localStorage.setItem('macTodos', JSON.stringify(todos)); renderTodos(); }
-        function addTodo() {
-            const input = document.getElementById('new-task'), dateInput = document.getElementById('new-date'), text = input.value.trim();
-            if (!text) return;
-            todos.push({ id: Date.now(), text: text, date: dateInput.value, completed: false });
-            input.value = ''; dateInput.value = ''; saveTodos();
-        }
-        function handleEnter(e) { if (e.key === 'Enter') addTodo(); }
-        function toggleTodo(id) { const idx = todos.findIndex(t => t.id === id); if (idx !== -1) { todos[idx].completed = !todos[idx].completed; saveTodos(); } }
-        function deleteTodo(id) { todos = todos.filter(t => t.id !== id); saveTodos(); }
-        function renderTodos() {
-            const list = document.getElementById('todo-list'), countEl = document.getElementById('todo-count');
-            list.innerHTML = '';
-            const sortedTodos = [...todos].sort((a, b) => a.completed - b.completed);
-            sortedTodos.forEach(todo => {
-                const div = document.createElement('div'); div.className = 'todo-item';
-                let dateHtml = '';
-                if (todo.date) {
-                    const d = new Date(todo.date), today = new Date(); today.setHours(0,0,0,0);
-                    const isOverdue = d < today && !todo.completed;
-                    dateHtml = `<div class="t-date ${isOverdue ? 'overdue' : ''}">${d.toLocaleDateString()}</div>`;
-                }
-                div.innerHTML = `<div class="t-checkbox ${todo.completed ? 'checked' : ''}" onclick="toggleTodo(${todo.id})"></div><div class="t-content"><div class="t-text ${todo.completed ? 'checked' : ''}">${todo.text}</div>${dateHtml}</div><div class="t-delete" onclick="deleteTodo(${todo.id})">✕</div>`;
-                list.appendChild(div);
-            });
-            countEl.innerText = todos.filter(t => !t.completed).length;
-        }
-        renderTodos();
-
         /* Network Latency */
         const sites = [ { id: 'ping-yt', url: 'https://www.youtube.com/favicon.ico' }, { id: 'ping-sch', url: 'https://scholar.google.com/favicon.ico' }, { id: 'ping-gem', url: 'https://gemini.google.com/favicon.ico' }, { id: 'ping-bili', url: 'https://www.bilibili.com/favicon.ico' } ];
         async function checkLatency(url) { const start = Date.now(); try { await fetch(url, { mode: 'no-cors', cache: 'no-store' }); return Date.now() - start; } catch (e) { return -1; } }
@@ -145,21 +114,312 @@
             }
         }
         setTimeout(updateNetworkStatus, 1000); setInterval(updateNetworkStatus, 5000);
-        
-        /* Weather */
-        async function updateWeather() {
-            const lat = 39.96; const lon = 116.30;
-            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FShanghai`;
-            try {
-                const res = await fetch(apiUrl); const data = await res.json();
-                document.getElementById('weather-temp').innerText = `${Math.round(data.current.temperature_2m)}°`;
-                document.getElementById('weather-range').innerText = `H:${Math.round(data.daily.temperature_2m_max[0])}° L:${Math.round(data.daily.temperature_2m_min[0])}°`;
-                document.getElementById('weather-city').innerText = "Haidian";
-                const code = data.current.weather_code;
-                let icon = "☁️";
-                if (code === 0) icon = "☀️"; else if (code >= 1 && code <= 3) icon = "⛅"; else if (code >= 45 && code <= 48) icon = "🌫️"; else if (code >= 51 && code <= 67) icon = "🌧️"; else if (code >= 71 && code <= 77) icon = "❄️"; else if (code >= 80 && code <= 82) icon = "🌦️"; else if (code >= 95 && code <= 99) icon = "⛈️";
-                document.getElementById('weather-icon').innerText = icon;
-            } catch (error) { document.getElementById('weather-range').innerText = "Offline"; }
+
+        /* Terminal Command Tool */
+        const terminalOutput = document.getElementById('terminal-output');
+        const terminalInput = document.getElementById('terminal-input');
+        const cmdPrompt = document.getElementById('cmd-prompt');
+        const commandHistory = [];
+        let historyIndex = -1;
+        const promptText = cmdPrompt ? cmdPrompt.textContent : '>';
+
+        function appendTerminalLine(type, text) {
+            if (!terminalOutput) return;
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            line.textContent = text;
+            terminalOutput.appendChild(line);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
         }
-        updateWeather(); setInterval(updateWeather, 1800000);
-    
+
+        function formatNumber(value) {
+            if (!Number.isFinite(value)) return String(value);
+            const normalized = Math.abs(value) < 1e-12 ? 0 : value;
+            return Number(normalized.toPrecision(12)).toString();
+        }
+
+        function clearTerminalOutput() {
+            terminalOutput.innerHTML = '';
+        }
+
+        function tokenizeExpression(expression) {
+            const tokens = [];
+            const cleaned = expression.replace(/\s+/g, '');
+            let i = 0;
+
+            while (i < cleaned.length) {
+                const ch = cleaned[i];
+
+                if (/[0-9.]/.test(ch)) {
+                    const start = i;
+                    i += 1;
+                    while (i < cleaned.length && /[0-9.]/.test(cleaned[i])) i += 1;
+                    const rawNumber = cleaned.slice(start, i);
+                    if (!/^\d*\.?\d+$/.test(rawNumber) || rawNumber === '.') {
+                        throw new Error(`Invalid number near "${rawNumber}"`);
+                    }
+                    tokens.push({ type: 'number', value: Number(rawNumber) });
+                    continue;
+                }
+
+                if (/[a-zA-Z_]/.test(ch)) {
+                    const start = i;
+                    i += 1;
+                    while (i < cleaned.length && /[a-zA-Z0-9_]/.test(cleaned[i])) i += 1;
+                    const name = cleaned.slice(start, i);
+                    tokens.push({ type: 'identifier', value: name });
+                    continue;
+                }
+
+                if ('+-*/^()'.includes(ch)) {
+                    if (ch === '(' || ch === ')') {
+                        tokens.push({ type: 'paren', value: ch });
+                    } else {
+                        tokens.push({ type: 'operator', value: ch });
+                    }
+                    i += 1;
+                    continue;
+                }
+
+                throw new Error(`Unsupported character: ${ch}`);
+            }
+
+            return tokens;
+        }
+
+        function toRpn(expression) {
+            const tokens = tokenizeExpression(expression);
+            const output = [];
+            const stack = [];
+            const operators = {
+                '+': { precedence: 1, assoc: 'left' },
+                '-': { precedence: 1, assoc: 'left' },
+                '*': { precedence: 2, assoc: 'left' },
+                '/': { precedence: 2, assoc: 'left' },
+                '^': { precedence: 3, assoc: 'right' },
+                'u-': { precedence: 4, assoc: 'right' }
+            };
+
+            let prevType = 'start';
+            for (const token of tokens) {
+                if (token.type === 'number') {
+                    output.push(token);
+                    prevType = 'value';
+                    continue;
+                }
+
+                if (token.type === 'identifier') {
+                    const name = token.value.toLowerCase();
+                    if (name === 'log2') {
+                        stack.push({ type: 'function', value: 'log2' });
+                        prevType = 'function';
+                        continue;
+                    }
+                    if (name === 'x') {
+                        throw new Error('Variable x is not supported in cal command');
+                    }
+                    throw new Error(`Unknown identifier: ${token.value}`);
+                }
+
+                if (token.type === 'operator') {
+                    let op = token.value;
+                    if (op === '-' && (prevType === 'start' || prevType === 'operator' || prevType === 'openParen' || prevType === 'function')) {
+                        op = 'u-';
+                    }
+
+                    while (stack.length) {
+                        const top = stack[stack.length - 1];
+                        if (top.type !== 'operator') break;
+                        const topMeta = operators[top.value];
+                        const opMeta = operators[op];
+                        const shouldPop = (opMeta.assoc === 'left' && opMeta.precedence <= topMeta.precedence)
+                            || (opMeta.assoc === 'right' && opMeta.precedence < topMeta.precedence);
+                        if (!shouldPop) break;
+                        output.push(stack.pop());
+                    }
+
+                    stack.push({ type: 'operator', value: op });
+                    prevType = 'operator';
+                    continue;
+                }
+
+                if (token.type === 'paren' && token.value === '(') {
+                    stack.push({ type: 'paren', value: '(' });
+                    prevType = 'openParen';
+                    continue;
+                }
+
+                if (token.type === 'paren' && token.value === ')') {
+                    let foundOpen = false;
+                    while (stack.length) {
+                        const top = stack.pop();
+                        if (top.type === 'paren' && top.value === '(') {
+                            foundOpen = true;
+                            break;
+                        }
+                        output.push(top);
+                    }
+                    if (!foundOpen) throw new Error('Mismatched parentheses');
+                    if (stack.length && stack[stack.length - 1].type === 'function') {
+                        output.push(stack.pop());
+                    }
+                    prevType = 'value';
+                }
+            }
+
+            while (stack.length) {
+                const top = stack.pop();
+                if (top.type === 'paren') throw new Error('Mismatched parentheses');
+                output.push(top);
+            }
+
+            return output;
+        }
+
+        function evaluateRpn(rpn) {
+            const stack = [];
+
+            for (const token of rpn) {
+                if (token.type === 'number') {
+                    stack.push(token.value);
+                    continue;
+                }
+
+                if (token.type === 'function') {
+                    if (stack.length < 1) throw new Error('Invalid function usage');
+                    const val = stack.pop();
+                    if (token.value === 'log2') {
+                        if (val <= 0) throw new Error('Domain error: log2(x) requires x > 0');
+                        stack.push(Math.log2(val));
+                        continue;
+                    }
+                    throw new Error(`Unsupported function: ${token.value}`);
+                }
+
+                if (token.type === 'operator') {
+                    if (token.value === 'u-') {
+                        if (stack.length < 1) throw new Error('Invalid unary operator usage');
+                        stack.push(-stack.pop());
+                        continue;
+                    }
+
+                    if (stack.length < 2) throw new Error('Invalid expression');
+                    const b = stack.pop();
+                    const a = stack.pop();
+                    let result;
+
+                    if (token.value === '+') result = a + b;
+                    else if (token.value === '-') result = a - b;
+                    else if (token.value === '*') result = a * b;
+                    else if (token.value === '/') {
+                        if (b === 0) throw new Error('Math error: division by zero');
+                        result = a / b;
+                    } else if (token.value === '^') {
+                        result = Math.pow(a, b);
+                    } else {
+                        throw new Error(`Unsupported operator: ${token.value}`);
+                    }
+
+                    if (!Number.isFinite(result) || Number.isNaN(result)) {
+                        throw new Error('Math error: invalid numeric result');
+                    }
+                    stack.push(result);
+                }
+            }
+
+            if (stack.length !== 1) throw new Error('Invalid expression');
+            return stack[0];
+        }
+
+        function showHelp() {
+            appendTerminalLine('help', 'Available commands:');
+            appendTerminalLine('help', '  help                 Show command help');
+            appendTerminalLine('help', '  clear                Clear output');
+            appendTerminalLine('help', '  cal <expr>           Calculate expression');
+            appendTerminalLine('help', 'Examples:');
+            appendTerminalLine('help', '  cal 2^3');
+            appendTerminalLine('help', '  cal 2^-2');
+            appendTerminalLine('help', '  cal log2(8)');
+            appendTerminalLine('help', '  cal (2+3)*4');
+        }
+
+        function executeCommand(rawCommand) {
+            const commandLine = rawCommand.trim();
+            if (!commandLine) {
+                appendTerminalLine('error', 'Error: empty command');
+                return;
+            }
+
+            appendTerminalLine('input', `${promptText} ${commandLine}`);
+
+            const firstSpace = commandLine.indexOf(' ');
+            const command = (firstSpace === -1 ? commandLine : commandLine.slice(0, firstSpace)).toLowerCase();
+            const args = firstSpace === -1 ? '' : commandLine.slice(firstSpace + 1).trim();
+
+            try {
+                if (command === 'help') {
+                    showHelp();
+                    return;
+                }
+
+                if (command === 'clear') {
+                    clearTerminalOutput();
+                    return;
+                }
+
+                if (command === 'cal') {
+                    if (!args) throw new Error('cal command requires an expression');
+                    const rpn = toRpn(args);
+                    const result = evaluateRpn(rpn);
+                    appendTerminalLine('result', formatNumber(result));
+                    return;
+                }
+
+                appendTerminalLine('error', `Error: unknown command "${command}"`);
+            } catch (err) {
+                appendTerminalLine('error', `Error: ${err.message}`);
+            }
+        }
+
+        function handleTerminalSubmit() {
+            const value = terminalInput.value;
+            if (!value.trim()) {
+                executeCommand('');
+                return;
+            }
+            commandHistory.push(value);
+            historyIndex = commandHistory.length;
+            terminalInput.value = '';
+            executeCommand(value);
+        }
+
+        function handleHistoryNavigation(event) {
+            if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+            event.preventDefault();
+            if (!commandHistory.length) return;
+
+            if (event.key === 'ArrowUp') {
+                historyIndex = Math.max(0, historyIndex - 1);
+            } else {
+                historyIndex = Math.min(commandHistory.length, historyIndex + 1);
+            }
+
+            if (historyIndex === commandHistory.length) {
+                terminalInput.value = '';
+            } else {
+                terminalInput.value = commandHistory[historyIndex] || '';
+                terminalInput.setSelectionRange(terminalInput.value.length, terminalInput.value.length);
+            }
+        }
+
+        terminalInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                handleTerminalSubmit();
+                return;
+            }
+            handleHistoryNavigation(event);
+        });
+
+        appendTerminalLine('help', 'Terminal ready. Type "help" for available commands.');
+

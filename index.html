@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -76,41 +76,29 @@
                     <div class="clock-date" id="clock-date">Jan 1</div>
                 </div>
             </div>
-            <div class="mac-widget widget-weather" style="cursor: pointer;" onclick="window.open('https://www.msn.com/en-us/weather/forecast/', '_blank')">
-                <div class="w-header" id="weather-city">Haidian</div>
-                <div class="w-main">
-                    <div class="w-temp" id="weather-temp" style="font-weight:bold; cursor: pointer;">--°</div>
-                    <div class="w-icon" id="weather-icon">--</div>
+            <div class="mac-widget widget-network">
+                <div class="net-header">
+                    <div class="net-title">Network Latency</div>
+                    <div class="status-dot"></div>
                 </div>
-                <div class="w-footer" id="weather-range">Loading...</div>
+                <div class="net-list">
+                    <div class="net-item" id="ping-yt"><div class="net-info"><div class="net-icon" style="color:#f00;">Y</div><span class="net-name">YouTube</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
+                    <div class="net-item" id="ping-sch"><div class="net-info"><div class="net-icon" style="color:#4285f4;">S</div><span class="net-name">Scholar</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
+                    <div class="net-item" id="ping-gem"><div class="net-info"><div class="net-icon" style="color:#9D65D6;">G</div><span class="net-name">Gemini</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
+                    <div class="net-item" id="ping-bili"><div class="net-info"><div class="net-icon" style="color:#00aeec;">B</div><span class="net-name">Bilibili</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
+                </div>
             </div>
         </div>
+
         <!-- Center Column -->
-        <div class="mac-widget widget-todo">
-            <div class="todo-header">
-                <div class="th-title"><span style="color:var(--accent-color); font-size:18px">●</span> Reminders</div>
-                <div class="th-count" id="todo-count">0</div>
-            </div>
-            <div class="todo-body" id="todo-list"></div>
-            <div class="todo-footer">
-                <div class="input-group">
-                    <input type="text" id="new-task" class="t-input" placeholder="New Reminder..." onkeypress="handleEnter(event)">
-                    <span class="t-btn-add" onclick="addTodo()">Add</span>
+        <div class="mac-widget widget-terminal">
+            <div class="cmd-shell">
+                <div class="cmd-titlebar">Command Prompt</div>
+                <div class="terminal-output" id="terminal-output"></div>
+                <div class="terminal-input-row cmd-input-row">
+                    <span class="prompt" id="cmd-prompt">&gt;</span>
+                    <input type="text" id="terminal-input" class="terminal-input" autocomplete="off" spellcheck="false">
                 </div>
-                <input type="date" id="new-date" class="date-input">
-            </div>
-        </div>
-        <!-- Right Column -->
-        <div class="mac-widget widget-network">
-            <div class="net-header">
-                <div class="net-title">Network Latency</div>
-                <div class="status-dot"></div>
-            </div>
-            <div class="net-list">
-                <div class="net-item" id="ping-yt"><div class="net-info"><div class="net-icon" style="color:#f00;">▶</div><span class="net-name">YouTube</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
-                <div class="net-item" id="ping-sch"><div class="net-info"><div class="net-icon" style="color:#4285f4;">🎓</div><span class="net-name">Scholar</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
-                <div class="net-item" id="ping-gem"><div class="net-info"><div class="net-icon" style="color:#9D65D6;">✦</div><span class="net-name">Gemini</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
-                <div class="net-item" id="ping-bili"><div class="net-info"><div class="net-icon" style="color:#00aeec;">📺</div><span class="net-name">Bilibili</span></div><div class="net-stat"><span class="net-ms">-- ms</span><div class="net-bar-bg"><div class="net-bar-fill" style="width:0%"></div></div></div></div>
             </div>
         </div>
     </div>

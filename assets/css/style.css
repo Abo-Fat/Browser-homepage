@@ -48,13 +48,13 @@
 
         /* --- 1. 顶部搜索区域 (Gemini Style) --- */
         .top-section {
-            padding-top: 15vh; /* 稍微下移，视觉重心更稳 */
+            padding-top: 8vh; /* 稍微下移，视觉重心更稳 */
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             z-index: 50;
-            gap: 25px;
+            gap: 14px;
         }
 
         /* 渐变色问候语 */
@@ -154,7 +154,7 @@
 
 
         /* --- 2. Dashboard Grid (保持不变) --- */
-        .dashboard-grid { display: grid; grid-template-columns: 280px 360px 280px; gap: 24px; align-items: start; padding: 20px; z-index: 10; }
+        .dashboard-grid { display: grid; grid-template-columns: 240px minmax(640px, 1fr); gap: 24px; align-items: start; padding: 12px 20px; z-index: 10; }
         .widget-col { display: flex; flex-direction: column; gap: 20px; }
         .mac-widget { background: rgba(255,255,255,0.55); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.6); border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); overflow: hidden; transition: transform 0.3s var(--ease-spring); }
         .mac-widget:hover { transform: translateY(-2px); }
@@ -199,7 +199,7 @@
         .t-btn-add { font-size: 13px; font-weight: 600; color: var(--accent-color); cursor: pointer; }
         .date-input { background: none; border: none; font-family: inherit; font-size: 11px; color: var(--text-secondary); cursor: pointer; }
 
-        .widget-network { height: 320px; display: flex; flex-direction: column; }
+        .widget-network { height: 250px; display: flex; flex-direction: column; }
         .net-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .net-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success-color); box-shadow: 0 0 8px var(--success-color); animation: pulse 2s infinite; }
@@ -239,4 +239,81 @@
         .bg-chrome { background: white; color: transparent; }
         .bg-github { background: #24292e; }
 
-    
+        .widget-terminal {
+            height: 420px;
+            min-height: 420px;
+            max-height: 420px;
+            display: flex;
+            flex-direction: column;
+            background: #0c0c0c;
+            border-color: #2c2c2c;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+        }
+        .widget-terminal:hover { transform: none; }
+        .cmd-shell {
+            display: flex;
+            flex-direction: column;
+            height: 420px;
+            min-height: 420px;
+            max-height: 420px;
+        }
+        .cmd-titlebar {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            background: #2d2d30;
+            color: #f0f0f0;
+            font-size: 12px;
+            font-family: "Segoe UI", sans-serif;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .terminal-output {
+            flex: none;
+            height: 346px;
+            min-height: 346px;
+            max-height: 346px;
+            margin: 0;
+            padding: 10px 12px;
+            border: none;
+            background: #0c0c0c;
+            color: #f5f5f5;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            overflow-y: auto;
+        }
+        .terminal-line { white-space: pre-wrap; word-break: break-word; margin-bottom: 4px; font-family: Consolas, "Courier New", monospace; }
+        .terminal-line.input { color: #f5f5f5; }
+        .terminal-line.result { color: #f5f5f5; }
+        .terminal-line.error { color: #ff6b68; }
+        .terminal-line.help { color: #d0d0d0; }
+        .terminal-input-row {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-top: 1px solid #1e1e1e;
+            background: #0c0c0c;
+        }
+        .prompt {
+            font-family: Consolas, "Courier New", monospace;
+            color: #f5f5f5;
+            font-weight: 400;
+            font-size: 14px;
+        }
+        .terminal-input {
+            flex: 1;
+            border: none;
+            background: #0c0c0c;
+            color: #f5f5f5;
+            font-size: 14px;
+            font-family: Consolas, "Courier New", monospace;
+            user-select: text;
+        }
+        .terminal-input::placeholder { color: #8a8a8a; }
+
+        @media (max-width: 1360px) {
+            .dashboard-grid { grid-template-columns: 1fr; width: min(96vw, 980px); }
+        }
