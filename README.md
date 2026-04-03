@@ -1,67 +1,67 @@
 # Browser Homepage
 
-A customizable browser start page with a starry dark UI, multi-engine search, dashboard widgets, and an interactive terminal.
+一个可自定义的浏览器起始页，包含星空暗色 UI、多引擎搜索、仪表盘组件和交互式终端。
 
-## Features
+## 功能特性
 
-- Multi-engine search: `Bing`, `Google`, `Scholar`, `Gemini`, `Copilot`, `Translate`
-- Gemini quick flow: copy query to clipboard and open Gemini in a new tab
-- Dashboard widgets:
-  - Clock/date
-  - Network latency panel (YouTube/Scholar/Gemini/Bilibili)
-  - Command terminal
-- Dock shortcuts and folder-style popup links
-- Starry dark theme background
-- Terminal command system with history (`ArrowUp`/`ArrowDown`)
-- Terminal `Tab` completion (`Shift+Tab` for reverse cycling)
+- 多引擎搜索：`Bing`、`Google`、`Scholar`、`Gemini`、`Copilot`、`Translate`
+- Gemini 快捷流程：先复制查询内容到剪贴板，再在新标签页打开 Gemini
+- 仪表盘组件：
+  - 时钟/日期
+  - 网络延迟面板（YouTube/Scholar/Gemini/Bilibili）
+  - 命令终端
+- Dock 快捷入口与文件夹式弹出链接
+- 星空暗色主题背景
+- 终端命令系统支持历史记录（`ArrowUp`/`ArrowDown`）
+- 终端支持 `Tab` 自动补全（`Shift+Tab` 反向切换）
 
-## Terminal Commands
+## 终端命令
 
-- `help` show grouped help
-- `clear` clear terminal output
-- `cal <expr>` calculate expression (supports `+ - * / ^`, parentheses, `log2`)
-- `weather` query current Beijing weather (Open-Meteo)
-- `ping <url>` test latency
-- `open <alias|url>` open target in a new tab
-- `search <engine> <query>` search with selected engine
-- `theme [name|list|reset]` switch/list themes
-- `time [zone|alias|list]` show current time by timezone
+- `help` 显示分组帮助
+- `clear` 清空终端输出
+- `cal <expr>` 计算表达式（支持 `+ - * / ^`、括号、`log2`）
+- `weather` 查询北京当前天气（Open-Meteo）
+- `ping <url>` 测试延迟
+- `open <alias|url>` 在新标签页打开目标
+- `search <engine> <query>` 使用指定引擎搜索
+- `theme [name|list|reset]` 切换/列出主题
+- `time [zone|alias|list]` 按时区显示当前时间
 
-### `open` Aliases
+### `open` 别名
 
-- `yt`, `youtube`
-- `gh`, `github`
-- `bili`, `bilibili`
+- `yt`、`youtube`
+- `gh`、`github`
+- `bili`、`bilibili`
 - `notion`
 - `gemini`
 - `pku`
 
-### `theme` Presets
+### `theme` 预设
 
-- `stars` (default)
+- `stars`（默认）
 - `aurora`
 - `ember`
 
-Theme selection is persisted in `localStorage` under key `homepage_theme`.
+主题选择会持久化保存到 `localStorage`，键名为 `homepage_theme`。
 
-### `time` Alias Examples
+### `time` 别名示例
 
-- `local`, `beijing`, `shanghai`, `tokyo`, `seoul`, `singapore`
-- `london`, `paris`, `ny`, `newyork`, `la`, `losangeles`, `utc`
-- You can also pass a standard IANA zone, e.g. `Europe/Berlin`.
+- `local`、`beijing`、`shanghai`、`tokyo`、`seoul`、`singapore`
+- `london`、`paris`、`ny`、`newyork`、`la`、`losangeles`、`utc`
+- 也可以直接传入标准 IANA 时区，例如 `Europe/Berlin`。
 
-## Tab Completion Behavior
+## Tab 自动补全行为
 
-- `Tab` completes command or argument and cycles candidates
-- `Shift+Tab` cycles backward
-- Supported completion contexts:
-  - command name
-  - `open` targets
-  - `search` engine
-  - `theme` option
-  - `time` alias
+- `Tab` 会补全命令或参数，并在候选项中循环切换
+- `Shift+Tab` 反向循环
+- 支持的补全上下文：
+  - 命令名
+  - `open` 目标
+  - `search` 引擎
+  - `theme` 选项
+  - `time` 别名
 
-## Project Structure
+## 项目结构
 
 ```text
 .
@@ -74,18 +74,18 @@ Theme selection is persisted in `localStorage` under key `homepage_theme`.
       `- main.js
 ```
 
-## Run
+## 运行方式
 
-Open `index.html` directly, or run a local static server:
+可直接打开 `index.html`，或启动本地静态服务器：
 
 ```bash
 python -m http.server 8080
 ```
 
-Then visit `http://localhost:8080`.
+然后访问 `http://localhost:8080`。
 
-## Notes
+## 注意事项
 
-- Weather and latency commands depend on external network availability.
-- Browser security/CORS behavior may affect latency measurements.
-- Clipboard permission affects Gemini copy-first flow.
+- 天气与延迟相关命令依赖外部网络可用性。
+- 浏览器安全策略/CORS 行为可能影响延迟测量结果。
+- 剪贴板权限会影响 Gemini 的“先复制再打开”流程。
