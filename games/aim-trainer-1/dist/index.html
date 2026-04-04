@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Aim Trainer</title>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="Romit Mohane" />
+    <title>Aim Trainer</title><link rel="stylesheet" href="./style.css">
+
+  </head>
+    
+  <body>
+  <div class="menu">
+      <h1>Aim Trainer</h1>
+      <h4>Select Training Time (in Seconds):</h4>
+      <input
+        type="number"
+        name="time"
+        id="gameTime"
+        value="10"
+        min="10"
+        max="100"
+        step="10"
+        onchange="setGameTime(event)"
+      /><span></span>
+      <div id="cards-holder">
+        <section>
+          <div id="crosshair-preview">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              id="menu-crosshair"
+              version="1.1"
+              width="100px"
+              height="100px"
+              viewBox="-2 -2 20 20"
+            >
+              <circle fill="none" stroke="currentColor" cx="8" cy="8" r=".3" />
+              <path fill="none" stroke="currentColor" d="M 8 0 L 8 6.5" />
+              <path fill="none" stroke="currentColor" d="M 0 8 L 6.5 8" />
+              <path fill="none" stroke="currentColor" d="M 8 9.5 L 8 16" />
+              <path fill="none" stroke="currentColor" d="M 9.5 8 L 16 8" />
+            </svg>
+          </div>
+          <div>
+            <h4>Crosshair color:</h4>
+            <input
+              type="color"
+              oninput="changeCrosshairColor(event)"
+            /><span></span>
+          </div>
+          <div>
+            <h4>
+              <label for="crosshairSize">Crosshair Size (in Pixels):</label>
+            </h4>
+            <span class="flex-span">
+              <input
+                type="number"
+                name="size"
+                id="crosshairSize"
+                value="100"
+                min="10"
+                max="200"
+                step="5"
+                onchange="setCrossHairSize(event.target.value)"
+              /><span></span>
+            </span>
+          </div>
+        </section>
+        <section>
+          <div>
+            <div class="target target-preview"></div>
+          </div>
+          <div>
+            <h4>
+              <label for="targetSize">Target Size (in Pixels):</label>
+            </h4>
+            <span class="flex-span">
+              <input
+                type="number"
+                name="targetSize"
+                id="targetSize"
+                value="100"
+                min="20"
+                max="200"
+                step="5"
+                onchange="setTargetSize(event.target.value)"
+              /><span></span>
+            </span>
+          </div>
+          <div>
+            <h4>
+              <label for="targetRoundness">Target Roundness:</label>
+            </h4>
+            <input
+              type="range"
+              name="targetRoundness"
+              id="targetRoundness"
+              value="50"
+              min="0"
+              max="50"
+              oninput="setTargetRadius(event.target.value)"
+            />
+          </div>
+        </section>
+      </div>
+      <button onclick="startGame()">Start</button>
+    </div>
+    <div class="menu end-menu">
+      <h1 id="timeOver" style="display: none">Time Over!</h1>
+      <span id="score"></span>
+      <span id="time"></span>
+      <span id="score-tps"></span>
+      <span id="targetSizeResult"></span>
+      <span id="isFullscreenResult"></span>
+      <button style="width: 150px" onclick="goToMenu()">Back to Menu</button>
+    </div>
+    <h4 id="countdown"></h4>
+    <h6 id="fullscreenLabel">
+      Fullscreen mode is recommeded.
+      <span onclick="goFullscreen()">Go Fullscreen.</span>
+    </h6>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      id="crosshair"
+      version="1.1"
+      width="100px"
+      height="100px"
+      viewBox="-2 -2 20 20"
+    >
+      <circle fill="none" stroke="currentColor" cx="8" cy="8" r=".3" />
+      <path fill="none" stroke="currentColor" d="M 8 0 L 8 6.5" />
+      <path fill="none" stroke="currentColor" d="M 0 8 L 6.5 8" />
+      <path fill="none" stroke="currentColor" d="M 8 9.5 L 8 16" />
+      <path fill="none" stroke="currentColor" d="M 9.5 8 L 16 8" />
+    </svg>
+    <div class="area">
+      <div id="realTarget" class="target"></div>
+    </div>
+    <div class="bar"></div>
+    <script  src="./script.js"></script>
+
+  </body>
+  
+</html>

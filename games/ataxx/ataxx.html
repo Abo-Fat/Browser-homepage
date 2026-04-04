@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>同化棋 (Ataxx)</title>
+    <!-- 引入 Tailwind CSS 样式库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- React 代码逻辑 -->
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // --- 图标组件 (替代外部库，确保直接能跑) ---
+        const Icon = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Disc = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10"/></Icon>;
+        const User = ({ className }) => <Icon className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
+        const Cpu = ({ className }) => <Icon className={className}><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></Icon>;
+        const RotateCcw = ({ className }) => <Icon className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></Icon>;
+        const FileUp = ({ className }) => <Icon className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 12v6"/><path d="M9 15l3-3 3 3"/></Icon>;
+        const FileDown = ({ className }) => <Icon className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></Icon>;
+
+        // --- 常量定义 ---
+        const BOARD_SIZE = 7;
+        const PLAYER_RED = 1;   // 玩家1 (红)
+        const PLAYER_YELLOW = 2; // 玩家2 (黄)
+        const EMPTY = 0;
+
+        const DIRECTIONS = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1]
+        ];
+
+        // --- 核心逻辑 ---
+        const getInitialBoard = () => {
+            const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY));
+            board[0][0] = PLAYER_RED;
+            board[BOARD_SIZE - 1][BOARD_SIZE - 1] = PLAYER_RED;
+            board[0][BOARD_SIZE - 1] = PLAYER_YELLOW;
+            board[BOARD_SIZE - 1][0] = PLAYER_YELLOW;
+            return board;
+        };
+
+        const isValidPos = (r, c) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+
+        const getValidMoves = (board, player) => {
+            const moves = [];
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === player) {
+                        for (let dr = -2; dr <= 2; dr++) {
+                            for (let dc = -2; dc <= 2; dc++) {
+                                if (dr === 0 && dc === 0) continue;
+                                const nr = r + dr;
+                                const nc = c + dc;
+                                if (isValidPos(nr, nc) && board[nr][nc] === EMPTY) {
+                                    const dist = Math.max(Math.abs(dr), Math.abs(dc));
+                                    if (dist === 1) {
+                                        moves.push({ from: { r, c }, to: { r: nr, c: nc }, type: 'CLONE' });
+                                    } else if (dist === 2) {
+                                        moves.push({ from: { r, c }, to: { r: nr, c: nc }, type: 'JUMP' });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return moves;
+        };
+
+        const applyMove = (board, move, player) => {
+            const newBoard = board.map(row => [...row]);
+            const { from, to, type } = move;
+            newBoard[to.r][to.c] = player;
+            if (type === 'JUMP') {
+                newBoard[from.r][from.c] = EMPTY;
+            }
+            const enemy = player === PLAYER_RED ? PLAYER_YELLOW : PLAYER_RED;
+            for (let [dr, dc] of DIRECTIONS) {
+                const nr = to.r + dr;
+                const nc = to.c + dc;
+                if (isValidPos(nr, nc) && newBoard[nr][nc] === enemy) {
+                    newBoard[nr][nc] = player;
+                }
+            }
+            return newBoard;
+        };
+
+        const countPieces = (board) => {
+            let red = 0, yellow = 0, empty = 0;
+            board.forEach(row => row.forEach(cell => {
+                if (cell === PLAYER_RED) red++;
+                else if (cell === PLAYER_YELLOW) yellow++;
+                else empty++;
+            }));
+            return { red, yellow, empty };
+        };
+
+        const checkGameOver = (board, movesRed, movesYellow) => {
+            const counts = countPieces(board);
+            if (counts.empty === 0) return true;
+            if (counts.red === 0 || counts.yellow === 0) return true;
+            if (movesRed.length === 0 && movesYellow.length === 0) return true;
+            return false;
+        };
+
+        // --- AI 逻辑 ---
+        const evaluateBoard = (board, aiPlayer) => {
+            const counts = countPieces(board);
+            return aiPlayer === PLAYER_RED ? counts.red - counts.yellow : counts.yellow - counts.red;
+        };
+
+        const minimax = (board, depth, alpha, beta, isMaximizing, aiPlayer) => {
+            const currentPlayer = isMaximizing ? aiPlayer : (aiPlayer === PLAYER_RED ? PLAYER_YELLOW : PLAYER_RED);
+            const moves = getValidMoves(board, currentPlayer);
+            if (depth === 0 || moves.length === 0) {
+                return evaluateBoard(board, aiPlayer);
+            }
+            if (isMaximizing) {
+                let maxEval = -Infinity;
+                for (const move of moves) {
+                    const nextBoard = applyMove(board, move, currentPlayer);
+                    const evalScore = minimax(nextBoard, depth - 1, alpha, beta, false, aiPlayer);
+                    maxEval = Math.max(maxEval, evalScore);
+                    alpha = Math.max(alpha, evalScore);
+                    if (beta <= alpha) break;
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (const move of moves) {
+                    const nextBoard = applyMove(board, move, currentPlayer);
+                    const evalScore = minimax(nextBoard, depth - 1, alpha, beta, true, aiPlayer);
+                    minEval = Math.min(minEval, evalScore);
+                    beta = Math.min(beta, evalScore);
+                    if (beta <= alpha) break;
+                }
+                return minEval;
+            }
+        };
+
+        const getBestMove = (board, player) => {
+            const moves = getValidMoves(board, player);
+            if (moves.length === 0) return null;
+            const depth = moves.length > 40 ? 2 : 3;
+            let bestVal = -Infinity;
+            let bestMoves = [];
+            for (const move of moves) {
+                const nextBoard = applyMove(board, move, player);
+                const moveVal = minimax(nextBoard, depth, -Infinity, Infinity, false, player);
+                if (moveVal > bestVal) {
+                    bestVal = moveVal;
+                    bestMoves = [move];
+                } else if (moveVal === bestVal) {
+                    bestMoves.push(move);
+                }
+            }
+            return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        };
+
+        // --- 主组件 ---
+        function AtaxxGame() {
+            const [board, setBoard] = useState(getInitialBoard());
+            const [currentPlayer, setCurrentPlayer] = useState(PLAYER_RED);
+            const [selectedPos, setSelectedPos] = useState(null);
+            const [validDestinations, setValidDestinations] = useState([]);
+            const [history, setHistory] = useState([]);
+            const [isAIEnabled, setIsAIEnabled] = useState(true);
+            const [gameStatus, setGameStatus] = useState('PLAYING');
+            const [winner, setWinner] = useState(null);
+            const [isProcessingAI, setIsProcessingAI] = useState(false);
+            const [lastMove, setLastMove] = useState(null);
+
+            useEffect(() => {
+                if (gameStatus === 'OVER') return;
+                const redMoves = getValidMoves(board, PLAYER_RED);
+                const yellowMoves = getValidMoves(board, PLAYER_YELLOW);
+                const isOver = checkGameOver(board, redMoves, yellowMoves);
+                if (isOver) {
+                    const { red, yellow } = countPieces(board);
+                    setGameStatus('OVER');
+                    if (red > yellow) setWinner(PLAYER_RED);
+                    else if (yellow > red) setWinner(PLAYER_YELLOW);
+                    else setWinner('DRAW');
+                    return;
+                }
+                const currentMoves = currentPlayer === PLAYER_RED ? redMoves : yellowMoves;
+                if (currentMoves.length === 0) {
+                    const nextPlayer = currentPlayer === PLAYER_RED ? PLAYER_YELLOW : PLAYER_RED;
+                    setTimeout(() => {
+                        alert(`${currentPlayer === PLAYER_RED ? '红方' : '黄方'} 无路可走，回合跳过！`);
+                        setCurrentPlayer(nextPlayer);
+                    }, 500);
+                }
+            }, [board, currentPlayer, gameStatus]);
+
+            useEffect(() => {
+                if (isAIEnabled && currentPlayer === PLAYER_YELLOW && gameStatus === 'PLAYING' && !isProcessingAI) {
+                    const timer = setTimeout(() => {
+                        setIsProcessingAI(true);
+                        // 延迟执行以免阻塞UI
+                        setTimeout(() => {
+                             const bestMove = getBestMove(board, PLAYER_YELLOW);
+                            if (bestMove) executeMove(bestMove);
+                            setIsProcessingAI(false);
+                        }, 50);
+                    }, 500);
+                    return () => clearTimeout(timer);
+                }
+            }, [currentPlayer, isAIEnabled, gameStatus, board, isProcessingAI]);
+
+            const executeMove = (move) => {
+                setHistory(prev => [...prev, { board, currentPlayer }]);
+                const newBoard = applyMove(board, move, currentPlayer);
+                setBoard(newBoard);
+                setLastMove({ from: move.from, to: move.to });
+                setCurrentPlayer(prev => prev === PLAYER_RED ? PLAYER_YELLOW : PLAYER_RED);
+                setSelectedPos(null);
+                setValidDestinations([]);
+            };
+
+            const handleCellClick = (r, c) => {
+                if (gameStatus !== 'OVER' && (!isAIEnabled || currentPlayer === PLAYER_RED)) {
+                    const destMove = validDestinations.find(d => d.r === r && d.c === c);
+                    if (destMove && selectedPos) {
+                        executeMove({ from: selectedPos, to: { r, c }, type: destMove.type });
+                        return;
+                    }
+                    if (board[r][c] === currentPlayer) {
+                        setSelectedPos({ r, c });
+                        const allMoves = getValidMoves(board, currentPlayer);
+                        const myMoves = allMoves.filter(m => m.from.r === r && m.from.c === c);
+                        setValidDestinations(myMoves.map(m => ({ ...m.to, type: m.type })));
+                        return;
+                    }
+                    setSelectedPos(null);
+                    setValidDestinations([]);
+                }
+            };
+
+            const startNewGame = () => {
+                setBoard(getInitialBoard());
+                setCurrentPlayer(PLAYER_RED);
+                setGameStatus('PLAYING');
+                setWinner(null);
+                setHistory([]);
+                setLastMove(null);
+                setSelectedPos(null);
+                setValidDestinations([]);
+            };
+
+            const undoMove = () => {
+                if (history.length === 0) return;
+                if (isAIEnabled) {
+                    if (history.length >= 2) {
+                        const prevState = history[history.length - 2];
+                        setBoard(prevState.board);
+                        setCurrentPlayer(prevState.currentPlayer);
+                        setHistory(prev => prev.slice(0, -2));
+                        setLastMove(null);
+                    }
+                } else {
+                    const prevState = history[history.length - 1];
+                    setBoard(prevState.board);
+                    setCurrentPlayer(prevState.currentPlayer);
+                    setHistory(prev => prev.slice(0, -1));
+                    setLastMove(null);
+                }
+            };
+
+            const saveGame = () => {
+                const state = { board, currentPlayer, history };
+                localStorage.setItem('ataxx_save', JSON.stringify(state));
+                alert("游戏已保存！");
+            };
+
+            const loadGame = () => {
+                const saved = localStorage.getItem('ataxx_save');
+                if (saved) {
+                    const state = JSON.parse(saved);
+                    setBoard(state.board);
+                    setCurrentPlayer(state.currentPlayer);
+                    setHistory(state.history || []);
+                    setGameStatus('PLAYING');
+                    setWinner(null);
+                    setLastMove(null);
+                } else {
+                    alert("没有找到存档！");
+                }
+            };
+
+            const counts = countPieces(board);
+
+            return (
+                <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8 font-sans text-slate-800">
+                    <header className="mb-6 text-center">
+                        <h1 className="text-4xl font-bold text-indigo-700 mb-2 flex items-center justify-center gap-2">
+                            <Disc className="w-8 h-8" /> 同化棋 (Ataxx)
+                        </h1>
+                        <p className="text-slate-500">by Zyning</p>
+                    </header>
+
+                    <div className="flex flex-col md:flex-row gap-8 w-full max-w-5xl px-4">
+                        {/* 控制面板 */}
+                        <div className="flex-1 bg-white p-6 rounded-xl shadow-lg space-y-6 h-fit">
+                            {/* 分数 */}
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                                <div className={`p-4 rounded-lg border-2 transition-all ${currentPlayer === PLAYER_RED ? 'border-red-500 bg-red-50' : 'border-transparent bg-slate-50'}`}>
+                                    <div className="text-lg font-semibold text-red-600 flex items-center justify-center gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-red-500 shadow-sm"></div> 红方
+                                    </div>
+                                    <div className="text-4xl font-bold mt-1">{counts.red}</div>
+                                </div>
+                                <div className={`p-4 rounded-lg border-2 transition-all ${currentPlayer === PLAYER_YELLOW ? 'border-yellow-400 bg-yellow-50' : 'border-transparent bg-slate-50'}`}>
+                                    <div className="text-lg font-semibold text-yellow-600 flex items-center justify-center gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-yellow-400 shadow-sm"></div> 黄方
+                                    </div>
+                                    <div className="text-4xl font-bold mt-1">{counts.yellow}</div>
+                                </div>
+                            </div>
+
+                            {/* 状态 */}
+                            <div className="text-center py-2">
+                                {gameStatus === 'OVER' ? (
+                                    <div className="text-2xl font-bold text-indigo-600 animate-bounce">
+                                        {winner === 'DRAW' ? '平局！' : `${winner === PLAYER_RED ? '红方' : '黄方'} 获胜！`}
+                                    </div>
+                                ) : (
+                                    <div className="text-lg text-slate-600">
+                                        当前回合: <span className={`font-bold ${currentPlayer === PLAYER_RED ? 'text-red-500' : 'text-yellow-500'}`}>
+                                            {currentPlayer === PLAYER_RED ? '红方' : '黄方'}
+                                        </span>
+                                        {isProcessingAI && <span className="ml-2 text-sm text-slate-400">(AI 思考中...)</span>}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 按钮组 */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={startNewGame} className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded transition">
+                                    <RotateCcw className="w-4 h-4" /> 新游戏
+                                </button>
+                                <button onClick={undoMove} disabled={history.length === 0 || isProcessingAI} className="flex items-center justify-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-4 rounded transition disabled:opacity-50">
+                                    <RotateCcw className="w-4 h-4 scale-x-[-1]" /> 撤销
+                                </button>
+                                <button onClick={saveGame} className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition">
+                                    <FileUp className="w-4 h-4" /> 保存
+                                </button>
+                                <button onClick={loadGame} className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+                                    <FileDown className="w-4 h-4" /> 读取
+                                </button>
+                            </div>
+
+                            {/* 设置 */}
+                            <div className="pt-4 border-t border-slate-100">
+                                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-50 rounded">
+                                    <span className="flex items-center gap-2 text-slate-700 font-medium">
+                                        {isAIEnabled ? <Cpu className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                                        {isAIEnabled ? '对手: 电脑 AI' : '对手: 本地玩家'}
+                                    </span>
+                                    <div className="relative">
+                                        <input type="checkbox" className="sr-only" checked={isAIEnabled} onChange={(e) => setIsAIEnabled(e.target.checked)} />
+                                        <div className={`w-10 h-6 rounded-full shadow-inner transition-colors ${isAIEnabled ? 'bg-indigo-500' : 'bg-slate-300'}`}></div>
+                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isAIEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* 棋盘 */}
+                        <div className="flex-2 flex justify-center items-start">
+                            <div 
+                                className="bg-indigo-900 p-3 rounded-lg shadow-2xl relative"
+                                style={{ width: 'min(90vw, 500px)', height: 'min(90vw, 500px)' }}
+                            >
+                                <div className="grid grid-cols-7 grid-rows-7 w-full h-full gap-1 bg-indigo-900">
+                                    {board.map((row, r) => (
+                                        row.map((cell, c) => {
+                                            const isSelected = selectedPos?.r === r && selectedPos?.c === c;
+                                            const isValidDest = validDestinations.find(d => d.r === r && d.c === c);
+                                            const isLastMoveSource = lastMove?.from.r === r && lastMove?.from.c === c;
+                                            const isLastMoveDest = lastMove?.to.r === r && lastMove?.to.c === c;
+
+                                            return (
+                                                <div 
+                                                    key={`${r}-${c}`}
+                                                    onClick={() => handleCellClick(r, c)}
+                                                    className={`
+                                                        relative w-full h-full rounded bg-emerald-400 hover:bg-emerald-300 transition-colors duration-200 cursor-pointer
+                                                        flex items-center justify-center
+                                                        ${isValidDest ? 'ring-4 ring-inset ring-green-400/50 bg-emerald-200' : ''}
+                                                        ${isSelected ? 'bg-emerald-600' : ''}
+                                                        ${(isLastMoveSource || isLastMoveDest) && !isSelected && !isValidDest ? 'bg-emerald-300/80' : ''}
+                                                    `}
+                                                >
+                                                    {/* 棋子 */}
+                                                    {cell !== EMPTY && (
+                                                        <div 
+                                                            className={`
+                                                                w-[80%] h-[80%] rounded-full shadow-[2px_2px_4px_rgba(0,0,0,0.3),inset_-2px_-2px_4px_rgba(0,0,0,0.2),inset_2px_2px_4px_rgba(255,255,255,0.4)]
+                                                                transition-all duration-300 transform
+                                                                ${cell === PLAYER_RED 
+                                                                    ? 'bg-gradient-to-br from-red-400 to-red-700' 
+                                                                    : 'bg-gradient-to-br from-yellow-300 to-yellow-600'}
+                                                                ${isSelected ? 'scale-110 ring-2 ring-white' : 'scale-100'}
+                                                            `}
+                                                        />
+                                                    )}
+
+                                                    {/* 移动提示 */}
+                                                    {isValidDest && (
+                                                        <div className={`absolute w-3 h-3 rounded-full ${isValidDest.type === 'CLONE' ? 'bg-green-600' : 'bg-yellow-600 opacity-50'}`}></div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {/* 规则说明 */}
+                    <div className="max-w-4xl w-full mt-12 px-6 py-6 bg-white rounded-lg shadow text-slate-600 text-sm">
+                        <h3 className="font-bold text-lg text-slate-800 mb-2">同化棋规则说明</h3>
+                        <ul className="list-disc list-inside space-y-1">
+                        <li><span className="font-semibold">复制 (一格)</span>：棋子移动到相邻 8 格（含对角），会在原处留下一颗棋子（相当于增加一子）。</li>
+                        <li><span className="font-semibold">跳跃 (两格)</span>：棋子移动到距离为 2 的格子，原处棋子消失（相当于移动）。</li>
+                        <li><span className="font-semibold">同化 (核心)</span>：落子后，新位置周围 8 格的所有敌方棋子都会变成我方颜色。</li>
+                        <li><span className="font-semibold">胜利条件</span>：当棋盘填满或双方均无法移动时，棋子数量多的一方获胜。</li>
+                        </ul>
+                    </div>
+                </div>
+            );
+        }
+
+        // 渲染应用
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AtaxxGame />);
+    </script>
+</body>
+</html>

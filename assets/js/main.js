@@ -122,7 +122,23 @@
         const commandHistory = [];
         let historyIndex = -1;
         const promptText = cmdPrompt ? cmdPrompt.textContent : '>';
-        const TERMINAL_COMMANDS = ['help', 'clear', 'cal', 'weather', 'ping', 'open', 'search', 'theme', 'time'];
+        const TERMINAL_COMMANDS = ['help', 'clear', 'cal', 'weather', 'ping', 'open', 'search', 'theme', 'time', 'play', 'end'];
+
+        /* --- Game Registry --- */
+        const GAMES = {
+            ataxx:        { name: 'Ataxx (同化棋)',         file: 'games/ataxx/ataxx.html' },
+            copycat:      { name: 'Copycat',                file: 'games/copycat/copycat.html' },
+            schultebox:   { name: '舒尔特方格',              file: 'games/schultebox/schultebox.html' },
+            stack:        { name: '3D 叠塔',                file: 'games/stack/stack.html' },
+            'aim-trainer-1': { name: 'Aim Trainer 1',      file: 'games/aim-trainer-1/dist/index.html' },
+            'aim-trainer-2': { name: 'Aim Trainer 2',      file: 'games/aim-trainer-2/dist/index.html' }
+        };
+        let currentGame = null;
+
+        /* --- Game Picker State --- */
+        let gamePickerActive = false;
+        let gamePickerIndex = 0;
+        let gamePickerEl = null;
         const OPEN_TARGET_ALIASES = {
             yt: 'https://www.youtube.com',
             youtube: 'https://www.youtube.com',
@@ -620,6 +636,77 @@
             }
         }
 
+        /* --- Game Mode Functions --- */
+        function enterGameMode(gameName) {
+            const key = (gameName || '').trim().toLowerCase();
+            const game = GAMES[key];
+            if (!game) {
+                const available = Object.keys(GAMES).join(', ');
+                throw new Error(`unknown game "${key}". Available: ${available}`);
+            }
+
+            currentGame = key;
+            appendTerminalLine('result', `Launching ${game.name}... type "end" to exit.`);
+
+            terminalOutput.style.display = 'none';
+
+            const gameContainer = document.getElementById('game-container');
+            const gameIframe = document.getElementById('game-iframe');
+            const fullscreenBtn = document.getElementById('game-fullscreen-btn');
+            const titleEl = document.getElementById('terminal-title');
+
+            gameIframe.src = game.file;
+            gameContainer.style.display = 'block';
+            fullscreenBtn.style.display = 'inline-flex';
+            titleEl.textContent = `Game: ${game.name}`;
+        }
+
+        function exitGameMode() {
+            if (!currentGame) {
+                throw new Error('no game is running. Start one with "play <game>"');
+            }
+
+            // Close fullscreen overlay if open
+            const overlay = document.getElementById('game-fullscreen-overlay');
+            if (overlay.classList.contains('active')) {
+                overlay.classList.remove('active');
+                document.getElementById('game-fullscreen-iframe').src = '';
+            }
+
+            const gameContainer = document.getElementById('game-container');
+            const gameIframe = document.getElementById('game-iframe');
+            const fullscreenBtn = document.getElementById('game-fullscreen-btn');
+            const titleEl = document.getElementById('terminal-title');
+
+            gameIframe.src = '';
+            gameContainer.style.display = 'none';
+            fullscreenBtn.style.display = 'none';
+            titleEl.textContent = 'Command Prompt';
+            terminalOutput.style.display = '';
+
+            currentGame = null;
+            appendTerminalLine('result', 'Game exited.');
+        }
+
+        function toggleGameFullscreen() {
+            const overlay = document.getElementById('game-fullscreen-overlay');
+            const overlayIframe = document.getElementById('game-fullscreen-iframe');
+            const inlineIframe = document.getElementById('game-iframe');
+            const overlayTitle = document.getElementById('game-overlay-title');
+            const btn = document.getElementById('game-fullscreen-btn');
+
+            if (overlay.classList.contains('active')) {
+                overlay.classList.remove('active');
+                overlayIframe.src = '';
+                btn.textContent = '\u26F6';
+            } else {
+                overlayTitle.textContent = `Game: ${GAMES[currentGame] ? GAMES[currentGame].name : currentGame}`;
+                overlayIframe.src = inlineIframe.src;
+                overlay.classList.add('active');
+                btn.textContent = '\u229E';
+            }
+        }
+
         function resetCompletionState() {
             completionState.base = '';
             completionState.items = [];
@@ -702,6 +789,20 @@
                 return [];
             }
 
+            if (command === 'play') {
+                const gameKeys = Object.keys(GAMES);
+                if (parts.length === 1 && hasTrailingSpace) {
+                    return gameKeys.map((k) => `play ${k}`);
+                }
+                if (parts.length === 2 && !hasTrailingSpace) {
+                    const token = parts[1] || '';
+                    return gameKeys
+                        .filter((k) => k.startsWith(token.toLowerCase()))
+                        .map((k) => `play ${k}`);
+                }
+                return [];
+            }
+
             return [];
         }
 
@@ -724,6 +825,50 @@
             completionState.index = (completionState.index + delta + total) % total;
             setTerminalInputValue(completionState.items[completionState.index]);
         }
+        /* --- Game Picker Functions --- */
+        function renderGamePickerItems() {
+            if (!gamePickerEl) return;
+            const keys = Object.keys(GAMES);
+            // keep header, replace item nodes
+            while (gamePickerEl.children.length > 1) {
+                gamePickerEl.removeChild(gamePickerEl.lastChild);
+            }
+            keys.forEach((k, i) => {
+                const item = document.createElement('div');
+                item.className = 'game-picker-item' + (i === gamePickerIndex ? ' selected' : '');
+                item.innerHTML =
+                    `<span class="game-picker-cursor">${i === gamePickerIndex ? '▶' : ' '}</span>` +
+                    `\u00a0<span class="game-picker-key">${k}</span>` +
+                    `<span class="game-picker-desc"> \u2014 ${GAMES[k].name}</span>`;
+                gamePickerEl.appendChild(item);
+            });
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function showGamePicker() {
+            gamePickerActive = true;
+            gamePickerIndex = 0;
+
+            gamePickerEl = document.createElement('div');
+            gamePickerEl.className = 'game-picker';
+
+            const header = document.createElement('div');
+            header.className = 'game-picker-header';
+            header.textContent = '↑ ↓ navigate   Enter launch   Esc cancel';
+            gamePickerEl.appendChild(header);
+
+            terminalOutput.appendChild(gamePickerEl);
+            renderGamePickerItems();
+        }
+
+        function closeGamePicker() {
+            gamePickerActive = false;
+            if (gamePickerEl && gamePickerEl.parentNode) {
+                gamePickerEl.parentNode.removeChild(gamePickerEl);
+            }
+            gamePickerEl = null;
+        }
+
         function showHelp() {
             appendTerminalLine('help', 'Commands');
             appendTerminalLine('help', '  Core');
@@ -740,6 +885,9 @@
             appendTerminalLine('help', '  Personalization');
             appendTerminalLine('help', '    theme [name|list]   Switch/list themes');
             appendTerminalLine('help', '    time [zone|alias]   Show current time');
+            appendTerminalLine('help', '  Games');
+            appendTerminalLine('help', '    play [game]         Launch a game (e.g. play ataxx)');
+            appendTerminalLine('help', '    end                 Exit current game');
             appendTerminalLine('help', 'Examples');
             appendTerminalLine('help', '  cal (2+3)*4');
             appendTerminalLine('help', '  open vpn');
@@ -817,6 +965,20 @@
                     return;
                 }
 
+                if (command === 'play') {
+                    if (!args) {
+                        showGamePicker();
+                        return;
+                    }
+                    enterGameMode(args);
+                    return;
+                }
+
+                if (command === 'end') {
+                    exitGameMode();
+                    return;
+                }
+
                 appendTerminalLine('error', `Error: unknown command "${command}"`);
             } catch (err) {
                 appendTerminalLine('error', `Error: ${err.message}`);
@@ -857,6 +1019,39 @@
         }
 
         terminalInput.addEventListener('keydown', (event) => {
+            /* --- Game Picker Navigation --- */
+            if (gamePickerActive) {
+                const keys = Object.keys(GAMES);
+                if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    gamePickerIndex = (gamePickerIndex - 1 + keys.length) % keys.length;
+                    renderGamePickerItems();
+                    return;
+                }
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    gamePickerIndex = (gamePickerIndex + 1) % keys.length;
+                    renderGamePickerItems();
+                    return;
+                }
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    const selectedKey = keys[gamePickerIndex];
+                    closeGamePicker();
+                    try { enterGameMode(selectedKey); }
+                    catch (err) { appendTerminalLine('error', `Error: ${err.message}`); }
+                    return;
+                }
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeGamePicker();
+                    appendTerminalLine('help', 'Cancelled.');
+                    return;
+                }
+                // Any printable key closes picker and lets input handle it normally
+                closeGamePicker();
+            }
+
             if (event.key === 'Tab') {
                 event.preventDefault();
                 handleTabCompletion(event.shiftKey);

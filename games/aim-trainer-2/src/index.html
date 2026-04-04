@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aim Trainer</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Righteous:wght@400;700&display=swap">
+</head>
+
+<body>
+  <div class="screen">
+    <h1>Your Free Aim Trainer!</h1>
+    <p class="sub-title">Aim Better, Play Better</p>
+    <button class="btn" id="start">Start Training</button>
+    <div class="fullscreen-options">
+      <button class="btn" id="fullscreen">FULL SCREEN</button>
+      <button class="btn" id="minimize">MINIMIZE</button>
+    </div>
+  </div>
+  <div class="screen">
+    <h1>CHOOSE TIME</h1>
+    <ul class="list" id="time-list">
+      <li><button class="btn time-btn" data-time="10">10 SEC</button></li>
+      <li><button class="btn time-btn" data-time="30">30 SEC</button></li>
+      <li><button class="btn time-btn" data-time="60">1 MIN</button></li>
+      <li><button class="btn time-btn" data-time="120">2 MIN</button></li>
+      <li><button class="btn time-btn" data-unlimited="true">UNLIMITED</button></li>
+    </ul>
+  </div>
+  <div class="screen">
+    <h1>CHOOSE DIFFICULTY</h1>
+    <ul class="list" id="difficulty-list">
+      <li><button class="btn difficulty-btn" data-difficulty="0">EASY</button></li>
+      <li><button class="btn difficulty-btn" data-difficulty="1">MEDIUM</button></li>
+      <li><button class="btn difficulty-btn" data-difficulty="2">HARD</button></li>
+    </ul>
+  </div>
+  <div class="screen">
+    <div class="info">
+      <p>HITS: <span id="hits">0</span></p>
+      <p>ACCURACY: <span id="accuracy">0%</span></p>
+      <p>TIME: <span id="time">00:00</span></p>
+    </div>
+    <div class="lives"></div>
+    <div class="board" id="board">
+      <div id="countdown"></div> <!-- Add this line for the countdown -->
+    </div>
+    <div class="options">
+      <button class="btn restart">RESTART</button>
+    </div>
+  </div>
+  <div class="screen">
+    <h1>GAME OVER</h1>
+    <div class="results">
+      <p>HITS: <span id="hits-over" style="color: #00ff00;">0</span></p>
+      <p>ACCURACY: <span id="accuracy-over">0%</span></p>
+    </div>
+    <div class="centered">
+      <button class="btn" id="refresh" onclick="refreshPage()">Restart Training</button>
+    </div>
+    <div class="Donate">
+      <a class="btn no-underline" id="Donate" href="https://venmo.com/u/Tini2x" target="_blank">Donate</a>
+    </div>
+  </div>
+  <script src="backend.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
